@@ -39,7 +39,7 @@ abstract class AbstractBookFormPage implements Hookable {
 	abstract protected function page_slug(): string;
 
 	/**
-	 * admin-post.php action name for this form's own submission.
+	 * Admin-post.php action name for this form's own submission.
 	 */
 	abstract protected function save_action(): string;
 
@@ -106,11 +106,15 @@ abstract class AbstractBookFormPage implements Hookable {
 
 	/**
 	 * Current value of one BookFields meta key.
+	 *
+	 * @param string $key Key.
 	 */
 	abstract protected function current_field_value( string $key ): mixed;
 
 	/**
 	 * Currently assigned term names for one taxonomy slug.
+	 *
+	 * @param string $taxonomy Taxonomy slug.
 	 *
 	 * @return string[]
 	 */
@@ -222,6 +226,8 @@ abstract class AbstractBookFormPage implements Hookable {
 	 * being ignored -- necessary so EditBookPage's "Remove" button
 	 * actually removes a previously-set cover; harmless on AddBookPage,
 	 * where there is never a previous cover to clear.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function maybe_attach_cover( int $post_id ): void {
 		if ( ! isset( $_POST['sb_cover_image_id'] ) ) {
@@ -247,6 +253,8 @@ abstract class AbstractBookFormPage implements Hookable {
 	 * EditBookPage specifically). Not part of BookFields: the gallery is
 	 * specific to this form, not (yet) covered by CSV import/export or
 	 * the legacy edit-screen meta box.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function maybe_attach_gallery( int $post_id ): void {
 		if ( ! isset( $_POST['sb_gallery_ids'] ) ) {
@@ -466,7 +474,7 @@ abstract class AbstractBookFormPage implements Hookable {
 	 * @param string $taxonomy Taxonomy slug (BookRowSchema::taxonomy_columns() value).
 	 */
 	private function render_taxonomy_field( string $column, string $label, string $taxonomy ): void {
-		$terms = get_terms(
+		$terms   = get_terms(
 			array(
 				'taxonomy'   => $taxonomy,
 				'hide_empty' => false,

@@ -71,6 +71,9 @@ final class BookContentDisplay implements Hookable {
 	 * at creation time from the post type's default, so any book created
 	 * before "comments" was added to BookPostType's supports would
 	 * otherwise stay stuck closed forever.
+	 *
+	 * @param bool $open Whether the item is open.
+	 * @param int  $post_id Book post ID.
 	 */
 	public function force_comments_open( bool $open, int $post_id ): bool {
 		if ( BookPostType::SLUG !== get_post_type( $post_id ) ) {
@@ -166,6 +169,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * Save a comment's submitted star rating as comment meta, if the
 	 * comment is on a book and a valid 1-5 value was submitted.
+	 *
+	 * @param int $comment_id Comment ID.
 	 */
 	public function save_comment_rating( int $comment_id ): void {
 		$comment = get_comment( $comment_id );
@@ -222,6 +227,8 @@ final class BookContentDisplay implements Hookable {
 	 * Render the average reader rating (Services\CommentRating::average(),
 	 * from commenters' own star ratings) plus how many ratings it's based
 	 * on. '' when nobody has rated yet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_average_rating( int $post_id ): string {
 		[ $average, $count ] = CommentRating::average( $post_id );
@@ -250,6 +257,8 @@ final class BookContentDisplay implements Hookable {
 	 * Wrap the post content with the hero (before) and details
 	 * panel/gallery (after), on a book's own singular page, in the main
 	 * loop only.
+	 *
+	 * @param string $content Post content.
 	 */
 	public function append_panel( string $content ): string {
 		if ( ! is_singular( BookPostType::SLUG ) || ! in_the_loop() || ! is_main_query() ) {
@@ -304,6 +313,8 @@ final class BookContentDisplay implements Hookable {
 	 * Build the "at a glance" hero: cover, byline, genre/format badges,
 	 * price, reader-rating summary, and (when enabled) a reading-status/
 	 * progress block.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_hero( int $post_id ): string {
 		$html  = '<div class="sb-book-hero">';
@@ -351,6 +362,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * Genre + format pills, already escaped, empty when the book has
 	 * neither.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function badges( int $post_id ): string {
 		$badges = array();
@@ -372,6 +385,8 @@ final class BookContentDisplay implements Hookable {
 	 * Reading-status badge plus progress bar, already escaped. Omits the
 	 * status badge when unset and the progress bar when 0%, and returns
 	 * '' entirely when there is nothing to show.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function reading_block( int $post_id ): string {
 		$status   = $this->status_label( $post_id );
@@ -405,6 +420,8 @@ final class BookContentDisplay implements Hookable {
 	 * logged-in visitor when the book is actually available, or a login
 	 * prompt for a logged-out one. '' entirely when Borrow Management
 	 * is disabled (Settings\Settings' "enable_borrow").
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_availability( int $post_id ): string {
 		if ( ! sb_option( 'enable_borrow', true ) ) {
@@ -449,6 +466,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * The "Request to Borrow" form, posting to
 	 * Frontend\BorrowRequestController::ACTION.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_request_form( int $post_id ): string {
 		$html  = sprintf( '<form method="post" action="%s" class="sb-borrow-request-form">', esc_url( admin_url( 'admin-post.php' ) ) );
@@ -466,9 +485,11 @@ final class BookContentDisplay implements Hookable {
 	 * a "Return Book" button (no return requested yet) or a
 	 * "Return requested -- awaiting approval" status (sb_return_request
 	 * already set by BorrowRequestController::handle_return_request()).
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_own_loan_status( int $post_id ): string {
-		$html  = sprintf(
+		$html = sprintf(
 			'<p class="sb-book-hero__availability sb-book-hero__availability--borrowed">%s</p>',
 			esc_html__( 'You Borrowed This Book', 'smartbook' )
 		);
@@ -488,6 +509,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * The "Return Book" form, posting to
 	 * Frontend\BorrowRequestController::RETURN_ACTION.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_return_form( int $post_id ): string {
 		$html  = sprintf( '<form method="post" action="%s" class="sb-borrow-request-form">', esc_url( admin_url( 'admin-post.php' ) ) );
@@ -502,6 +525,8 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * Whether a book is currently on loan.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function is_borrowed( int $post_id ): bool {
 		return '1' === (string) get_post_meta( $post_id, 'sb_borrowed', true )
@@ -516,6 +541,8 @@ final class BookContentDisplay implements Hookable {
 	 * from the book scan page's "Borrow" quick action can't be reliably
 	 * tied to a specific account, so that case always reads as "someone
 	 * else has it", never as "you".
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function is_borrowed_by_current_user( int $post_id ): bool {
 		if ( ! is_user_logged_in() ) {
@@ -524,7 +551,7 @@ final class BookContentDisplay implements Hookable {
 
 		$borrowed_to = (string) get_post_meta( $post_id, 'sb_borrowed_to', true );
 
-		return '' !== $borrowed_to && ctype_digit( $borrowed_to ) && (int) $borrowed_to === get_current_user_id();
+		return '' !== $borrowed_to && ctype_digit( $borrowed_to ) && get_current_user_id() === (int) $borrowed_to;
 	}
 
 	/**
@@ -532,6 +559,8 @@ final class BookContentDisplay implements Hookable {
 	 * collection, ISBNs, pages, edition, language, condition, purchase
 	 * date) plus any Summary/Notes text, omitted entirely when every
 	 * field is empty.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_details_panel( int $post_id ): string {
 		$rows  = $this->render_row( __( 'Shelf', 'smartbook' ), $this->terms( $post_id, ShelfTaxonomy::SLUG ) );
@@ -582,6 +611,8 @@ final class BookContentDisplay implements Hookable {
 	 * what that needs); without JavaScript, the link still works as a
 	 * plain "open the full image" link. Empty when the book has no
 	 * gallery.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function render_gallery( int $post_id ): string {
 		$items = '';
@@ -637,6 +668,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * The book's cover image, linked-page-ready markup straight from
 	 * core, or a placeholder glyph when it has none.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function cover( int $post_id ): string {
 		if ( has_post_thumbnail( $post_id ) ) {
@@ -648,6 +681,9 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * Comma-separated term names for one taxonomy, already escaped.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	private function terms( int $post_id, string $taxonomy ): string {
 		$names = $this->term_list( $post_id, $taxonomy );
@@ -657,6 +693,9 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * Raw (unescaped) term names for one taxonomy.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $taxonomy Taxonomy slug.
 	 *
 	 * @return string[]
 	 */
@@ -672,6 +711,9 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * A plain-text BookFields meta value, already escaped, '' when unset.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $key Key.
 	 */
 	private function field( int $post_id, string $key ): string {
 		$value = (string) get_post_meta( $post_id, $key, true );
@@ -682,6 +724,9 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * A "Y-m-d" BookFields date meta value, formatted per the site's
 	 * configured date format, already escaped, '' when unset.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $key Key.
 	 */
 	private function date_field( int $post_id, string $key ): string {
 		$value = (string) get_post_meta( $post_id, $key, true );
@@ -692,6 +737,9 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * A select-type BookFields value's translated option label (e.g.
 	 * "sb_condition"), already escaped, '' when unset/unrecognised.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $key Key.
 	 */
 	private function choice_label( int $post_id, string $key ): string {
 		$value   = (string) get_post_meta( $post_id, $key, true );
@@ -702,6 +750,8 @@ final class BookContentDisplay implements Hookable {
 
 	/**
 	 * The "sb_format" field's translated option label, already escaped.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function format_label( int $post_id ): string {
 		return $this->choice_label( $post_id, 'sb_format' );
@@ -738,6 +788,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * The book's price formatted per the site's currency setting,
 	 * already escaped, omitted when unset.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function price( int $post_id ): string {
 		$price = (float) get_post_meta( $post_id, 'sb_price', true );
@@ -748,6 +800,8 @@ final class BookContentDisplay implements Hookable {
 	/**
 	 * Attachment ids from the "sb_gallery" meta (comma-separated,
 	 * written by the Add/Edit Book media picker).
+	 *
+	 * @param int $post_id Book post ID.
 	 *
 	 * @return int[]
 	 */

@@ -36,6 +36,8 @@ final class CsvFormat implements FormatInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param array<string, mixed> $rows Rows to process.
 	 */
 	public function encode( array $rows ): string {
 		$columns          = array() !== $rows ? array_keys( reset( $rows ) ) : BookRowSchema::columns();
@@ -70,6 +72,10 @@ final class CsvFormat implements FormatInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $content Raw contents of the uploaded file.
+	 *
+	 * @throws RuntimeException When the CSV file is empty.
 	 */
 	public function decode( string $content ): array {
 		$handle = fopen( 'php://temp', 'w+' );
@@ -118,6 +124,8 @@ final class CsvFormat implements FormatInterface {
 	 * spreadsheet application would interpret as the start of a formula,
 	 * preventing CSV formula injection when the file is opened in Excel
 	 * or similar.
+	 *
+	 * @param string $value Value.
 	 */
 	private function csv_safe( string $value ): string {
 		if ( '' !== $value && str_contains( '=+-@', $value[0] ) ) {

@@ -37,7 +37,9 @@ final class ImportExportAjaxController implements Hookable {
 	private const NONCE_ACTION = 'sb_admin_nonce';
 
 	/**
-	 * @param ImportRunner   $runner  Chunked import/restore engine.
+	 * Constructor.
+	 *
+	 * @param ImportRunner   $runner Chunked import/restore engine.
 	 * @param FormatRegistry $formats Available CSV/JSON/XML/Backup formats.
 	 */
 	public function __construct(
@@ -125,6 +127,8 @@ final class ImportExportAjaxController implements Hookable {
 	 * into an HTML attribute; wp_nonce_url() HTML-escapes its return
 	 * value (& becomes &amp;), which is correct for the latter and wrong
 	 * for the former.
+	 *
+	 * @param string $token Import session token.
 	 */
 	private function download_log_url( string $token ): string {
 		return add_query_arg(

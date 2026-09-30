@@ -15,6 +15,13 @@ namespace SmartBook\Services\Import;
  */
 final class ImportError {
 
+	/**
+	 * Constructor.
+	 *
+	 * @param int    $row_number One-based row number the error belongs to.
+	 * @param string $title      Title from the failing row, if any.
+	 * @param string $message    What went wrong.
+	 */
 	public function __construct(
 		public readonly int $row_number,
 		public readonly string $title,
@@ -23,6 +30,8 @@ final class ImportError {
 	}
 
 	/**
+	 * To array.
+	 *
 	 * @return array{row: int, title: string, message: string}
 	 */
 	public function to_array(): array {
@@ -34,6 +43,8 @@ final class ImportError {
 	}
 
 	/**
+	 * From array.
+	 *
 	 * @param array<string, mixed> $data Array shaped like to_array()'s return.
 	 */
 	public static function from_array( array $data ): self {

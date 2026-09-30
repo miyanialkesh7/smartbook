@@ -57,6 +57,9 @@ final class DuplicateDetector {
 
 	/**
 	 * First book post ID with an exact match on a given meta key/value.
+	 *
+	 * @param string $key Key.
+	 * @param string $value Value.
 	 */
 	private function find_by_meta( string $key, string $value ): int {
 		$posts = get_posts(
@@ -77,6 +80,8 @@ final class DuplicateDetector {
 
 	/**
 	 * First book post ID with an exact (case-insensitive) title match.
+	 *
+	 * @param string $title Title.
 	 */
 	private function find_by_title( string $title ): int {
 		$posts = get_posts(

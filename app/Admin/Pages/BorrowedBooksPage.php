@@ -39,21 +39,23 @@ final class BorrowedBooksPage implements Hookable {
 	private const PAGE_SLUG = 'sb_borrowed_books';
 
 	/**
-	 * admin-post.php action name for the "Mark Returned" row action.
+	 * Admin-post.php action name for the "Mark Returned" row action.
 	 */
 	private const MARK_RETURNED_ACTION = 'sb_mark_returned';
 
 	/**
-	 * admin-post.php action name for the "Approve" request action.
+	 * Admin-post.php action name for the "Approve" request action.
 	 */
 	private const APPROVE_REQUEST_ACTION = 'sb_approve_borrow_request';
 
 	/**
-	 * admin-post.php action name for the "Deny" request action.
+	 * Admin-post.php action name for the "Deny" request action.
 	 */
 	private const DENY_REQUEST_ACTION = 'sb_deny_borrow_request';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param BookStats $stats Book catalog statistics, including borrowed_books()/pending_borrow_requests().
 	 */
 	public function __construct( private readonly BookStats $stats ) {
@@ -214,6 +216,8 @@ final class BorrowedBooksPage implements Hookable {
 
 	/**
 	 * Render the "On Loan"/"Returned"/"All" table (borrowed_books()).
+	 *
+	 * @param string $filter Filter value.
 	 */
 	private function render_borrowed_table( string $filter ): void {
 		$books = $this->stats->borrowed_books( $filter );
@@ -334,6 +338,8 @@ final class BorrowedBooksPage implements Hookable {
 	 * "Lost", "Overdue", or the default "On Loan" -- with a "Return
 	 * Requested" badge appended whenever the borrower has asked to
 	 * return an active (not yet confirmed-returned) loan.
+	 *
+	 * @param array<string, mixed> $book Book post object.
 	 */
 	private function status_badge( array $book ): string {
 		if ( $book['returned'] ) {
@@ -362,12 +368,14 @@ final class BorrowedBooksPage implements Hookable {
 	 * count bubble (the two summed make up the sidebar menu's own
 	 * bubble, see AdminMenu::add_borrow_request_bubble()) whenever any
 	 * are pending.
+	 *
+	 * @param string $current Current value.
 	 */
 	private function render_filter_tabs( string $current ): void {
 		$pending_count = $this->stats->count_pending_borrow_requests();
 		$return_count  = $this->stats->count_pending_return_requests();
 
-		$tabs = array(
+		$tabs  = array(
 			'requests'         => $pending_count > 0
 				? sprintf(
 					/* translators: %d: number of pending borrow requests. */
@@ -439,6 +447,8 @@ final class BorrowedBooksPage implements Hookable {
 
 	/**
 	 * URL to the custom Edit Book page for a book.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function edit_book_link( int $post_id ): string {
 		return add_query_arg(
@@ -452,6 +462,8 @@ final class BorrowedBooksPage implements Hookable {
 
 	/**
 	 * Nonce-protected admin-post.php URL for the "Mark Returned" action.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function mark_returned_url( int $post_id ): string {
 		return wp_nonce_url(
@@ -468,6 +480,8 @@ final class BorrowedBooksPage implements Hookable {
 
 	/**
 	 * Nonce-protected admin-post.php URL for the "Approve" request action.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function approve_request_url( int $post_id ): string {
 		return wp_nonce_url(
@@ -484,6 +498,8 @@ final class BorrowedBooksPage implements Hookable {
 
 	/**
 	 * Nonce-protected admin-post.php URL for the "Deny" request action.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function deny_request_url( int $post_id ): string {
 		return wp_nonce_url(

@@ -301,7 +301,7 @@ final class BookFields {
 	}
 
 	/**
-	 * sections(), minus any section whose "gate" setting is currently off.
+	 * The result of sections(), minus any section whose "gate" setting is currently off.
 	 *
 	 * @return array<string, array{title: string, fields: string[], gate: ?string}>
 	 */
@@ -463,6 +463,8 @@ final class BookFields {
 	 * never leaves this showing a stale name. Anything else is a
 	 * free-text name (the book scan page's "Borrow" quick action, or a
 	 * CSV import), shown as-is.
+	 *
+	 * @param string $raw Raw value.
 	 */
 	public static function borrowed_to_display( string $raw ): string {
 		if ( '' === $raw ) {

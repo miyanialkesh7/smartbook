@@ -39,7 +39,7 @@ use function sb_option;
 final class BorrowRequestController implements Hookable {
 
 	/**
-	 * admin-post.php action name for "Request to Borrow".
+	 * Admin-post.php action name for "Request to Borrow".
 	 */
 	public const ACTION = 'sb_request_borrow';
 
@@ -49,7 +49,7 @@ final class BorrowRequestController implements Hookable {
 	public const NONCE_NAME = 'sb_request_borrow_nonce';
 
 	/**
-	 * admin-post.php action name for "Return Book".
+	 * Admin-post.php action name for "Return Book".
 	 */
 	public const RETURN_ACTION = 'sb_request_return';
 
@@ -83,6 +83,8 @@ final class BorrowRequestController implements Hookable {
 	/**
 	 * Nonce action name for a given book's "Request to Borrow" form, so
 	 * BookContentDisplay's form and this handler always agree on it.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public static function nonce_action( int $post_id ): string {
 		return self::NONCE_ACTION_PREFIX . $post_id;
@@ -90,6 +92,8 @@ final class BorrowRequestController implements Hookable {
 
 	/**
 	 * Nonce action name for a given book's "Return Book" form.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public static function return_nonce_action( int $post_id ): string {
 		return self::RETURN_NONCE_ACTION_PREFIX . $post_id;
@@ -174,6 +178,8 @@ final class BorrowRequestController implements Hookable {
 
 	/**
 	 * Whether a book is currently on loan (not available to request).
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function is_borrowed( int $post_id ): bool {
 		return '1' === (string) get_post_meta( $post_id, 'sb_borrowed', true )
@@ -186,6 +192,9 @@ final class BorrowRequestController implements Hookable {
 	 * request (BookFields::user_options()'s id-keyed "sb_borrowed_to");
 	 * a free-typed name from the book scan page's "Borrow" quick action
 	 * can't be tied to a specific account, so it never matches here.
+	 *
+	 * @param int $post_id Book post ID.
+	 * @param int $user_id User ID.
 	 */
 	private function is_borrowed_by( int $post_id, int $user_id ): bool {
 		if ( ! $this->is_borrowed( $post_id ) ) {
@@ -199,6 +208,8 @@ final class BorrowRequestController implements Hookable {
 
 	/**
 	 * Whether a book already has an unresolved pending borrow request.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function has_pending_request( int $post_id ): bool {
 		return (int) get_post_meta( $post_id, 'sb_borrow_request_user', true ) > 0;
@@ -206,6 +217,8 @@ final class BorrowRequestController implements Hookable {
 
 	/**
 	 * Whether a book already has an unresolved pending return request.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function has_pending_return_request( int $post_id ): bool {
 		return '1' === (string) get_post_meta( $post_id, 'sb_return_request', true );
@@ -214,6 +227,9 @@ final class BorrowRequestController implements Hookable {
 	/**
 	 * Redirect back to the book's own page, flagged with a notice
 	 * BookContentDisplay turns into a banner.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $notice Notice text.
 	 */
 	private function redirect_back( int $post_id, string $notice ): never {
 		$url = add_query_arg( array( 'sb_borrow_notice' => $notice ), get_permalink( $post_id ) );

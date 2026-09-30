@@ -41,6 +41,8 @@ final class BackupFormat implements FormatInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param array<string, mixed> $rows Rows to process.
 	 */
 	public function encode( array $rows ): string {
 		$envelope = array(
@@ -60,6 +62,10 @@ final class BackupFormat implements FormatInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $content Raw contents of the uploaded file.
+	 *
+	 * @throws RuntimeException When the file is not a valid SmartBook backup.
 	 */
 	public function decode( string $content ): array {
 		$decoded = json_decode( $content, true );

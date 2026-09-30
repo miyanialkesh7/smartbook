@@ -37,6 +37,8 @@ interface FormatInterface {
 	/**
 	 * Parse this format's string representation back into rows.
 	 *
+	 * @param string $content Raw contents of the uploaded file.
+	 *
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function decode( string $content ): array;

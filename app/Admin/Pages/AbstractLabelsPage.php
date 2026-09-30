@@ -53,6 +53,8 @@ abstract class AbstractLabelsPage {
 	 * (generating it if not) before returning its URL; an entry whose
 	 * "url" comes back '' is skipped when the label is rendered.
 	 *
+	 * @param int $post_id Book post ID.
+	 *
 	 * @return array<int, array{url: string, alt: string}>
 	 */
 	abstract protected function images( int $post_id ): array;
@@ -160,6 +162,8 @@ abstract class AbstractLabelsPage {
 	/**
 	 * A small cover thumbnail (or placeholder glyph) for one book's row
 	 * in the selection checklist, already safe to echo directly.
+	 *
+	 * @param WP_Post $book Book post object.
 	 */
 	private function selection_cover( WP_Post $book ): string {
 		if ( has_post_thumbnail( $book ) ) {
@@ -224,6 +228,8 @@ abstract class AbstractLabelsPage {
 	 * richer "library card" layout, while still reusing images(),
 	 * term_names(), and every bit of surrounding selection/print-sheet
 	 * plumbing here.
+	 *
+	 * @param WP_Post $book Book post object.
 	 */
 	protected function render_label( WP_Post $book ): void {
 		$shelf = $this->shelf_names( $book->ID );
@@ -266,6 +272,9 @@ abstract class AbstractLabelsPage {
 	 * Comma-separated term names for one taxonomy on a book, '' if none
 	 * (or the taxonomy isn't attached to it). Shared by shelf_names()
 	 * here and BookCardsPage's own author/genre lines.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	protected function term_names( int $post_id, string $taxonomy ): string {
 		$terms = get_the_terms( $post_id, $taxonomy );

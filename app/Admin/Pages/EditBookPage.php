@@ -37,7 +37,7 @@ final class EditBookPage extends AbstractBookFormPage {
 	private const PAGE_SLUG = 'sb_edit_book';
 
 	/**
-	 * admin-post.php action name for the form's own submission.
+	 * Admin-post.php action name for the form's own submission.
 	 */
 	private const SAVE_ACTION = 'sb_edit_book';
 
@@ -52,6 +52,8 @@ final class EditBookPage extends AbstractBookFormPage {
 	private const NONCE_NAME = 'sb_edit_book_nonce';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param QrCodeMetaBox  $qr_code_meta_box QR code display/regenerate panel.
 	 * @param BarcodeMetaBox $barcode_meta_box Barcode display/regenerate panel.
 	 */
@@ -390,6 +392,8 @@ final class EditBookPage extends AbstractBookFormPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $key Key.
 	 */
 	protected function current_field_value( string $key ): mixed {
 		$book = $this->book();
@@ -399,6 +403,8 @@ final class EditBookPage extends AbstractBookFormPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	protected function current_terms( string $taxonomy ): array {
 		$book = $this->book();

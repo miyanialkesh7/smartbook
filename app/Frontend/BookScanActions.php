@@ -115,6 +115,9 @@ final class BookScanActions implements Hookable {
 	/**
 	 * Redirect back to the book's own scan page, flagged with a success
 	 * notice BookScanPage turns into a banner.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $notice Notice text.
 	 */
 	private function redirect_back( int $post_id, string $notice ): void {
 		$url = add_query_arg(

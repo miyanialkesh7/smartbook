@@ -82,6 +82,10 @@ final class BookFormValidator {
 	 * the same lookup Services\Import\DuplicateDetector uses to decide
 	 * whether an import row updates an existing book instead of creating
 	 * one, reused here to reject the duplicate outright instead.
+	 *
+	 * @param string $title Title.
+	 * @param string $isbn10 ISBN-10.
+	 * @param int    $excluding_post_id Post ID to leave out of the match.
 	 */
 	private static function find_duplicate( string $title, string $isbn10, int $excluding_post_id ): ?string {
 		$match_id = ( new DuplicateDetector() )->find_existing_id(
@@ -115,6 +119,8 @@ final class BookFormValidator {
 	 * book, a placeholder for a book that predates ISBNs, or a simple
 	 * transposition typo would otherwise get hard-rejected on a checksum
 	 * technicality unrelated to whether the entry is usable.
+	 *
+	 * @param string $isbn ISBN.
 	 */
 	private static function is_valid_isbn10( string $isbn ): bool {
 		$isbn = strtoupper( str_replace( array( '-', ' ' ), '', $isbn ) );
@@ -125,6 +131,8 @@ final class BookFormValidator {
 	/**
 	 * Whether a string is a valid, real "Y-m-d" date (rejects e.g.
 	 * "2024-02-30", not just anything DateTime can loosely parse).
+	 *
+	 * @param string $value Value.
 	 */
 	private static function is_valid_date( string $value ): bool {
 		$date = DateTimeImmutable::createFromFormat( 'Y-m-d', $value );

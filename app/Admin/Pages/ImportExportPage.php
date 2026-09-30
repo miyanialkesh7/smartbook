@@ -120,7 +120,9 @@ final class ImportExportPage implements Hookable {
 	private const INLINE_ERROR_LIMIT = 50;
 
 	/**
-	 * @param ImportRunner  $runner  Chunked import/restore engine.
+	 * Constructor.
+	 *
+	 * @param ImportRunner   $runner Chunked import/restore engine.
 	 * @param FormatRegistry $formats Available CSV/JSON/XML/Backup formats.
 	 */
 	public function __construct(
@@ -280,6 +282,9 @@ final class ImportExportPage implements Hookable {
 	 * Shared body for handle_import()/handle_restore(): validate the
 	 * upload, resolve its format, run it to completion, then redirect to
 	 * a result summary.
+	 *
+	 * @param string $field Field definition.
+	 * @param string $mode Import mode.
 	 */
 	private function handle_run( string $field, string $mode ): void {
 		if ( ! isset( $_FILES[ $field ] ) || UPLOAD_ERR_OK !== $_FILES[ $field ]['error'] ) {
@@ -347,6 +352,10 @@ final class ImportExportPage implements Hookable {
 
 	/**
 	 * Send $content to the browser as a file download and terminate the request.
+	 *
+	 * @param string $content Body of the file to send.
+	 * @param string $mime_type MIME type.
+	 * @param string $filename Filename.
 	 */
 	private function stream_download( string $content, string $mime_type, string $filename ): never {
 		nocache_headers();
@@ -393,6 +402,7 @@ final class ImportExportPage implements Hookable {
 	private function render_result_summary( array $result ): void {
 		printf( '<div class="sb-notice sb-notice--success sb-import-result"><p>%s</p>', esc_html( $this->summary_message( $result ) ) );
 
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- inline @var type hint for static analysis.
 		/** @var array<int, array<string, mixed>> $errors */
 		$errors = $result['errors'];
 
@@ -449,6 +459,8 @@ final class ImportExportPage implements Hookable {
 
 	/**
 	 * Nonce-signed URL to download a run's full error log.
+	 *
+	 * @param string $token Import session token.
 	 */
 	private function download_log_url( string $token ): string {
 		return wp_nonce_url(

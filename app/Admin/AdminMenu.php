@@ -68,19 +68,21 @@ final class AdminMenu implements Hookable {
 	private const HIDDEN_SLUGS = array( 'sb_add_book', 'sb_edit_book', 'sb_qr_labels', 'sb_barcode_labels', 'sb_all_labels', 'sb_book_cards' );
 
 	/**
-	 * @param DashboardPage      $dashboard       Dashboard page renderer.
-	 * @param BooksPage          $books           Books list page renderer.
-	 * @param BorrowedBooksPage  $borrowed_books  Borrowed books management page renderer.
-	 * @param AddBookPage        $add_book        Custom "Add New Book" form renderer.
-	 * @param EditBookPage       $edit_book       Custom "Edit Book" form renderer.
-	 * @param LabelsPage         $labels          Labels hub page renderer.
-	 * @param StatisticsPage     $statistics      Statistics page renderer.
-	 * @param ImportExportPage   $import_export   Import/export page renderer.
-	 * @param QrLabelsPage       $qr_labels       QR label print page renderer.
-	 * @param BarcodeLabelsPage  $barcode_labels  Barcode label print page renderer.
-	 * @param AllLabelsPage      $all_labels      Combined QR + barcode label print page renderer.
-	 * @param BookCardsPage      $book_cards      Book detail card print page renderer.
-	 * @param SettingsPage       $settings        Settings page renderer.
+	 * Constructor.
+	 *
+	 * @param DashboardPage     $dashboard Dashboard page renderer.
+	 * @param BooksPage         $books Books list page renderer.
+	 * @param BorrowedBooksPage $borrowed_books Borrowed books management page renderer.
+	 * @param AddBookPage       $add_book Custom "Add New Book" form renderer.
+	 * @param EditBookPage      $edit_book Custom "Edit Book" form renderer.
+	 * @param LabelsPage        $labels Labels hub page renderer.
+	 * @param StatisticsPage    $statistics Statistics page renderer.
+	 * @param ImportExportPage  $import_export Import/export page renderer.
+	 * @param QrLabelsPage      $qr_labels QR label print page renderer.
+	 * @param BarcodeLabelsPage $barcode_labels Barcode label print page renderer.
+	 * @param AllLabelsPage     $all_labels Combined QR + barcode label print page renderer.
+	 * @param BookCardsPage     $book_cards Book detail card print page renderer.
+	 * @param SettingsPage      $settings Settings page renderer.
 	 */
 	public function __construct(
 		private readonly DashboardPage $dashboard,
@@ -121,7 +123,7 @@ final class AdminMenu implements Hookable {
 	 * menu while on one of the four taxonomy screens (Authors, Genres,
 	 * Publishers, Shelves).
 	 *
-	 * wp-admin/edit-tags.php unconditionally sets $parent_file to
+	 * WordPress's wp-admin/edit-tags.php unconditionally sets $parent_file to
 	 * "edit.php?post_type=$post_type" for any taxonomy attached to a
 	 * custom post type -- but BookPostType is registered with
 	 * show_in_menu => false, so that slug was never registered as a
@@ -133,6 +135,8 @@ final class AdminMenu implements Hookable {
 	 * submenu_file (see register()'s "&amp;" comment) isn't enough on
 	 * its own, since that comparison never even runs without a matching
 	 * parent first.
+	 *
+	 * @param string $parent_file Parent menu file.
 	 */
 	public function fix_taxonomy_parent_file( string $parent_file ): string {
 		$screen = get_current_screen();
@@ -371,7 +375,7 @@ final class AdminMenu implements Hookable {
 	 * Hide HIDDEN_SLUGS' links from the rendered admin sidebar with CSS,
 	 * instead of remove_submenu_page().
 	 *
-	 * remove_submenu_page() deletes the entry from the global $submenu
+	 * Calling remove_submenu_page() deletes the entry from the global $submenu
 	 * array, which breaks WordPress's own access check for *direct*
 	 * admin.php?page=... navigation to a page whose parent is a custom
 	 * top-level menu (as PARENT_SLUG is): user_can_access_admin_page()
@@ -403,6 +407,9 @@ final class AdminMenu implements Hookable {
 	 * for the Comments menu's moderation count, styled by wp-admin's own
 	 * CSS with no additions needed here. '' count leaves the label
 	 * untouched.
+	 *
+	 * @param string $label Label.
+	 * @param int    $count Item count.
 	 */
 	private function menu_label_with_bubble( string $label, int $count ): string {
 		if ( $count <= 0 ) {

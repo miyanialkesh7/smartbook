@@ -89,6 +89,8 @@ final class UploadedFileStore {
 
 	/**
 	 * Delete a previously stored file, ignoring a missing/already-deleted one.
+	 *
+	 * @param string $path File path.
 	 */
 	public function delete( string $path ): void {
 		if ( '' !== $path && file_exists( $path ) ) {

@@ -17,7 +17,16 @@ namespace SmartBook\Services\Import;
 final class ImportResult {
 
 	/**
+	 * Constructor.
+	 *
+	 * @param int           $total Total rows.
+	 * @param int           $processed Rows processed so far.
+	 * @param int           $created Rows created.
+	 * @param int           $updated Rows updated.
+	 * @param int           $skipped Rows skipped.
+	 * @param int           $failed Rows that failed.
 	 * @param ImportError[] $errors Row-level failures, capped by ImportRunner.
+	 * @param bool          $done Whether the run has finished.
 	 */
 	public function __construct(
 		public readonly int $total = 0,
@@ -32,6 +41,8 @@ final class ImportResult {
 	}
 
 	/**
+	 * From array.
+	 *
 	 * @param array<string, mixed> $data Array shaped like to_array()'s return.
 	 */
 	public static function from_array( array $data ): self {
@@ -56,6 +67,8 @@ final class ImportResult {
 	}
 
 	/**
+	 * To array.
+	 *
 	 * @return array<string, mixed>
 	 */
 	public function to_array(): array {

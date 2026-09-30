@@ -42,18 +42,18 @@ final class SettingsPage implements Hookable {
 	/**
 	 * Settings API "page" slugs, one per tab.
 	 */
-	private const TAB_GENERAL = 'sb_settings_general';
+	private const TAB_GENERAL  = 'sb_settings_general';
 	private const TAB_FEATURES = 'sb_settings_features';
-	private const TAB_DISPLAY = 'sb_settings_display';
-	private const TAB_APIS = 'sb_settings_apis';
+	private const TAB_DISPLAY  = 'sb_settings_display';
+	private const TAB_APIS     = 'sb_settings_apis';
 
 	/**
 	 * Settings section ids.
 	 */
-	private const SECTION_GENERAL = 'sb_settings_general_section';
+	private const SECTION_GENERAL  = 'sb_settings_general_section';
 	private const SECTION_FEATURES = 'sb_settings_features_section';
-	private const SECTION_DISPLAY = 'sb_settings_display_section';
-	private const SECTION_APIS = 'sb_settings_apis_section';
+	private const SECTION_DISPLAY  = 'sb_settings_display_section';
+	private const SECTION_APIS     = 'sb_settings_apis_section';
 
 	/**
 	 * Constructor.
@@ -399,6 +399,9 @@ final class SettingsPage implements Hookable {
 
 	/**
 	 * Shared renderer for a single boolean setting's checkbox.
+	 *
+	 * @param string $key Key.
+	 * @param string $description Description.
 	 */
 	private function render_checkbox( string $key, string $description ): void {
 		$value = (bool) $this->settings->get( $key, false );
@@ -443,6 +446,9 @@ final class SettingsPage implements Hookable {
 	 * Render one tab panel: its (JS-hidden-and-replaced-by-a-tab-button)
 	 * heading plus every Settings API section registered to that tab's
 	 * "page" slug.
+	 *
+	 * @param string $tab Tab.
+	 * @param string $title Title.
 	 */
 	private function render_tab_panel( string $tab, string $title ): void {
 		printf( '<div class="sb-tabs__panel" data-sb-tab-panel="%s">', esc_attr( $tab ) );

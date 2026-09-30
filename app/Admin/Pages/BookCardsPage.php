@@ -27,6 +27,8 @@ use WP_Post;
 final class BookCardsPage extends AbstractLabelsPage {
 
 	/**
+	 * Constructor.
+	 *
 	 * @param QrCodeManager $qr_codes QR code storage/lifecycle manager.
 	 */
 	public function __construct( private readonly QrCodeManager $qr_codes ) {
@@ -62,6 +64,8 @@ final class BookCardsPage extends AbstractLabelsPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function images( int $post_id ): array {
 		$this->qr_codes->ensure_generated( $post_id );
@@ -80,6 +84,8 @@ final class BookCardsPage extends AbstractLabelsPage {
 	 * A "library card" layout instead of the default image + title +
 	 * shelf stack: cover thumbnail and bibliographic details on the
 	 * left, the QR code on the right.
+	 *
+	 * @param WP_Post $book Book post object.
 	 */
 	protected function render_label( WP_Post $book ): void {
 		$qr = $this->images( $book->ID )[0] ?? array(
@@ -122,6 +128,9 @@ final class BookCardsPage extends AbstractLabelsPage {
 
 	/**
 	 * Render one "Label: value" line, omitted entirely when the value is empty.
+	 *
+	 * @param string $label Label.
+	 * @param string $value Value.
 	 */
 	private function render_meta_line( string $label, string $value ): void {
 		if ( '' === $value ) {
@@ -137,6 +146,8 @@ final class BookCardsPage extends AbstractLabelsPage {
 
 	/**
 	 * The book's ISBN-10, '' if unset.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function isbn( int $post_id ): string {
 		return (string) get_post_meta( $post_id, 'sb_isbn', true );
@@ -144,6 +155,8 @@ final class BookCardsPage extends AbstractLabelsPage {
 
 	/**
 	 * The "sb_format" field's translated option label, '' when unset.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function format_label( int $post_id ): string {
 		$value   = (string) get_post_meta( $post_id, 'sb_format', true );

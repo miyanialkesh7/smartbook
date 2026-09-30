@@ -62,6 +62,10 @@ final class LabelsPage {
 	/**
 	 * Render a single link card, matching DashboardPage's "Quick Links"
 	 * style (same classes, so it picks up the same CSS with no additions).
+	 *
+	 * @param string $label Label.
+	 * @param string $url URL.
+	 * @param string $icon Icon name.
 	 */
 	private function render_link( string $label, string $url, string $icon ): void {
 		printf(

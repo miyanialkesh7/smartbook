@@ -58,6 +58,8 @@ final class BarcodeServiceProvider extends AbstractServiceProvider {
 	 * and the manual regenerate action isn't reachable. Existing
 	 * generated files are left in place (re-enabling picks up right
 	 * where it left off) rather than deleted here.
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		if ( ! sb_option( 'enable_barcode', true ) ) {
