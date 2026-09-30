@@ -43,6 +43,7 @@ final class BookScanActions implements Hookable {
 	 * Handle the "Update Progress" form.
 	 */
 	public function handle_update_progress(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce and capability are verified by authorize() before any input is read.
 		$post_id = $this->authorize();
 
 		$progress = isset( $_POST['sb_progress'] ) ? absint( wp_unslash( $_POST['sb_progress'] ) ) : 0;
@@ -56,12 +57,14 @@ final class BookScanActions implements Hookable {
 		}
 
 		$this->redirect_back( $post_id, 'progress_updated' );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
 	 * Handle the "Borrow" form.
 	 */
 	public function handle_borrow(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce and capability are verified by authorize() before any input is read.
 		$post_id = $this->authorize();
 
 		$borrowed_to = isset( $_POST['sb_borrowed_to'] ) ? sanitize_text_field( wp_unslash( $_POST['sb_borrowed_to'] ) ) : '';
@@ -76,6 +79,7 @@ final class BookScanActions implements Hookable {
 		update_post_meta( $post_id, 'sb_borrow_date', current_time( 'Y-m-d' ) );
 
 		$this->redirect_back( $post_id, 'borrowed' );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	/**

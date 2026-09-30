@@ -43,6 +43,7 @@ final class CsvFormat implements FormatInterface {
 		$columns          = array() !== $rows ? array_keys( reset( $rows ) ) : BookRowSchema::columns();
 		$taxonomy_columns = BookRowSchema::taxonomy_columns();
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- in-memory php://temp stream used for RFC 4180-correct CSV parsing/writing, not a file on disk.
 		$handle = fopen( 'php://temp', 'w+' );
 
 		fputcsv( $handle, $columns );
@@ -65,6 +66,7 @@ final class CsvFormat implements FormatInterface {
 
 		rewind( $handle );
 		$content = stream_get_contents( $handle );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- in-memory php://temp stream used for RFC 4180-correct CSV parsing/writing, not a file on disk.
 		fclose( $handle );
 
 		return false !== $content ? $content : '';
@@ -78,22 +80,26 @@ final class CsvFormat implements FormatInterface {
 	 * @throws RuntimeException When the CSV file is empty.
 	 */
 	public function decode( string $content ): array {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- in-memory php://temp stream used for RFC 4180-correct CSV parsing/writing, not a file on disk.
 		$handle = fopen( 'php://temp', 'w+' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- in-memory php://temp stream used for RFC 4180-correct CSV parsing/writing, not a file on disk.
 		fwrite( $handle, $content );
 		rewind( $handle );
 
 		$header = fgetcsv( $handle );
 
 		if ( false === $header || array( null ) === $header ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- in-memory php://temp stream used for RFC 4180-correct CSV parsing/writing, not a file on disk.
 			fclose( $handle );
 
-			throw new RuntimeException( __( 'The CSV file is empty.', 'smartbook' ) );
+			throw new RuntimeException( esc_html__( 'The CSV file is empty.', 'smartbook' ) );
 		}
 
 		$header           = array_map( static fn ( mixed $value ): string => trim( (string) $value ), $header );
 		$taxonomy_columns = BookRowSchema::taxonomy_columns();
 		$rows             = array();
 
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- in-memory php://temp stream used for RFC 4180-correct CSV parsing/writing, not a file on disk.
 		while ( false !== ( $line = fgetcsv( $handle ) ) ) {
 			if ( array( null ) === $line ) {
 				continue;
@@ -114,6 +120,7 @@ final class CsvFormat implements FormatInterface {
 			$rows[] = $data;
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- in-memory php://temp stream used for RFC 4180-correct CSV parsing/writing, not a file on disk.
 		fclose( $handle );
 
 		return $rows;

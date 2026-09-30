@@ -123,9 +123,9 @@ final class BookScanPage implements Hookable {
 
 			<h1 class="sb-scan__title"><?php echo esc_html( get_the_title( $book ) ); ?></h1>
 
-			<?php echo $this->fact_row( __( 'Author', 'smartbook' ), $this->authors( $book->ID ) ); ?>
-			<?php echo $this->fact_row( __( 'Shelf', 'smartbook' ), $this->shelf( $book->ID ) ); ?>
-			<?php echo $this->fact_row( __( 'Rating', 'smartbook' ), $this->rating( $book->ID ) ); ?>
+			<?php echo $this->fact_row( __( 'Author', 'smartbook' ), $this->authors( $book->ID ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fact_row() escapes its label and every value_html argument is already-escaped markup. ?>
+			<?php echo $this->fact_row( __( 'Shelf', 'smartbook' ), $this->shelf( $book->ID ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fact_row() escapes its label and every value_html argument is already-escaped markup. ?>
+			<?php echo $this->fact_row( __( 'Rating', 'smartbook' ), $this->rating( $book->ID ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fact_row() escapes its label and every value_html argument is already-escaped markup. ?>
 
 			<?php if ( sb_option( 'enable_reading_tracker', true ) ) : ?>
 				<?php echo $this->progress_section( $book->ID ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped. ?>

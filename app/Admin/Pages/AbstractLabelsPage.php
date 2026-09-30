@@ -143,13 +143,15 @@ abstract class AbstractLabelsPage {
 		echo '<ul class="sb-label-select-list">';
 
 		foreach ( $books as $book ) {
+			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- checked() returns an escaped attribute and selection_cover() returns escaped markup.
 			printf(
 				'<li><label><input type="checkbox" name="sb_book_id[]" value="%1$d" class="sb-label-select-list__checkbox" %2$s />%3$s<span class="sb-label-select-list__title">%4$s</span></label></li>',
-				$book->ID,
+				absint( $book->ID ),
 				checked( array() === $preselected || in_array( $book->ID, $preselected, true ), true, false ),
 				$this->selection_cover( $book ),
 				esc_html( get_the_title( $book ) )
 			);
+			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
 		echo '</ul>';

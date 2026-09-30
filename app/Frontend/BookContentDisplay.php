@@ -104,6 +104,7 @@ final class BookContentDisplay implements Hookable {
 		$post_id = 0;
 
 		if ( isset( $_POST['comment_post_ID'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only lookup of which post this is about; wp-comments-post.php itself owns the actual nonce/capability checks for the submission.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- see above; read-only lookup of which post this is about.
 			$post_id = absint( $_POST['comment_post_ID'] );
 		} elseif ( is_singular( BookPostType::SLUG ) ) {
 			$post_id = get_queried_object_id();
@@ -183,6 +184,7 @@ final class BookContentDisplay implements Hookable {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- see above; wp-comments-post.php already validated this submission.
 		$rating = absint( wp_unslash( $_POST[ CommentRating::META_KEY ] ) );
 
 		if ( $rating < 1 || $rating > 5 ) {

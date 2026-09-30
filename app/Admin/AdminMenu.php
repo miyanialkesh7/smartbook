@@ -398,6 +398,7 @@ final class AdminMenu implements Hookable {
 			$selectors[] = sprintf( '#adminmenu li:has(> a[href="%s"])', $href );
 		}
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- selectors are built from the HIDDEN_SLUGS constant with esc_attr() applied to every slug; esc_html() would corrupt the CSS combinators.
 		printf( '<style>%s{display:none;}</style>', implode( ',', $selectors ) );
 	}
 

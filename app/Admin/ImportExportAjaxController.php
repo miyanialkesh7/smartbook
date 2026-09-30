@@ -60,6 +60,7 @@ final class ImportExportAjaxController implements Hookable {
 	 * Store an uploaded file and open a new chunked import/restore session.
 	 */
 	public function handle_start(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verify_request() checks the nonce and capability first; the uploaded file is validated by UploadedFileStore::store() (extension, is_uploaded_file).
 		$this->verify_request();
 
 		$mode  = isset( $_POST['mode'] ) && 'restore' === $_POST['mode'] ? 'restore' : 'import';
@@ -93,12 +94,14 @@ final class ImportExportAjaxController implements Hookable {
 		}
 
 		wp_send_json_success( $result );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 	}
 
 	/**
 	 * Process the next batch of rows for a session started by handle_start().
 	 */
 	public function handle_chunk(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verify_request() checks the nonce and capability first.
 		$this->verify_request();
 
 		$token = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
@@ -116,6 +119,7 @@ final class ImportExportAjaxController implements Hookable {
 		$result['download_log_url'] = $this->download_log_url( (string) $result['token'] );
 
 		wp_send_json_success( $result );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	/**

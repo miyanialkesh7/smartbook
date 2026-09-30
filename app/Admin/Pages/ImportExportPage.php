@@ -219,6 +219,7 @@ final class ImportExportPage implements Hookable {
 	 * Stream every book as a download in the chosen format.
 	 */
 	public function handle_export(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verify_request() checks the nonce and capability first.
 		$this->verify_request();
 
 		$requested = isset( $_POST['sb_export_format'] ) ? sanitize_key( wp_unslash( $_POST['sb_export_format'] ) ) : 'csv';
@@ -229,6 +230,7 @@ final class ImportExportPage implements Hookable {
 			$format->mime_type(),
 			'smartbook-export-' . gmdate( 'Y-m-d' ) . '.' . $format->extension()
 		);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
@@ -266,6 +268,7 @@ final class ImportExportPage implements Hookable {
 	 * Stream a finished import/restore run's row-level errors as CSV.
 	 */
 	public function handle_download_log(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- verify_request() checks the nonce and capability first.
 		$this->verify_request();
 
 		$token = isset( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : '';
@@ -276,6 +279,7 @@ final class ImportExportPage implements Hookable {
 		}
 
 		$this->stream_download( $csv, 'text/csv', 'smartbook-import-errors-' . gmdate( 'Y-m-d' ) . '.csv' );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
@@ -287,6 +291,7 @@ final class ImportExportPage implements Hookable {
 	 * @param string $mode Import mode.
 	 */
 	private function handle_run( string $field, string $mode ): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- only called from handle_import()/handle_restore() after verify_request(); the uploaded file is validated by ImportRunner/UploadedFileStore.
 		if ( ! isset( $_FILES[ $field ] ) || UPLOAD_ERR_OK !== $_FILES[ $field ]['error'] ) {
 			$this->redirect_with_notice( 'error', __( 'Please choose a file to upload.', 'smartbook' ) );
 		}
@@ -326,6 +331,7 @@ final class ImportExportPage implements Hookable {
 		);
 
 		exit;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 	}
 
 	/**
@@ -375,6 +381,7 @@ final class ImportExportPage implements Hookable {
 	 * @return array<string, mixed>|null
 	 */
 	private function requested_result(): ?array {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- read-only display of a result token; the stored session belongs to the current user (checked in ImportRunner).
 		$token = isset( $_GET['sb_result_token'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_result_token'] ) ) : '';
 
 		if ( '' === $token ) {
@@ -391,6 +398,7 @@ final class ImportExportPage implements Hookable {
 		$result['mode'] = $mode;
 
 		return $result;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 	}
 
 	/**

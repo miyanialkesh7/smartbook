@@ -55,7 +55,7 @@ final class JsonFormat implements FormatInterface {
 		$decoded = json_decode( $content, true );
 
 		if ( ! is_array( $decoded ) ) {
-			throw new RuntimeException( __( 'The JSON file could not be parsed.', 'smartbook' ) );
+			throw new RuntimeException( esc_html__( 'The JSON file could not be parsed.', 'smartbook' ) );
 		}
 
 		$rows = array();

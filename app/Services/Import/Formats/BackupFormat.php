@@ -75,7 +75,7 @@ final class BackupFormat implements FormatInterface {
 			|| self::PLUGIN_KEY !== $decoded['plugin']
 			|| ! is_array( $decoded['books'] )
 		) {
-			throw new RuntimeException( __( 'This file is not a valid SmartBook backup.', 'smartbook' ) );
+			throw new RuntimeException( esc_html__( 'This file is not a valid SmartBook backup.', 'smartbook' ) );
 		}
 
 		$rows = array();

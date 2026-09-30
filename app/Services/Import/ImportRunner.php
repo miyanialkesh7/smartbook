@@ -256,6 +256,7 @@ final class ImportRunner {
 			return $session;
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- in-memory php://temp stream, or this plugin's own stored upload; not user-controlled paths.
 		$handle = fopen( 'php://temp', 'w+' );
 
 		fputcsv( $handle, array( 'Row', 'Title', 'Message' ) );
@@ -270,6 +271,7 @@ final class ImportRunner {
 
 		rewind( $handle );
 		$content = stream_get_contents( $handle );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- in-memory php://temp stream, or this plugin's own stored upload; not user-controlled paths.
 		fclose( $handle );
 
 		return false !== $content ? $content : '';
@@ -352,6 +354,7 @@ final class ImportRunner {
 	 * @return array<int, array<string, mixed>>|WP_Error
 	 */
 	private function decode( FormatInterface $format, string $path ): array|WP_Error {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- in-memory php://temp stream, or this plugin's own stored upload; not user-controlled paths.
 		$content = file_exists( $path ) ? file_get_contents( $path ) : false;
 
 		if ( false === $content ) {

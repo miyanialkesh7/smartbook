@@ -103,7 +103,7 @@ final class XmlFormat implements FormatInterface {
 		libxml_use_internal_errors( $previous_state );
 
 		if ( false === $xml ) {
-			throw new RuntimeException( __( 'The XML file could not be parsed.', 'smartbook' ) );
+			throw new RuntimeException( esc_html__( 'The XML file could not be parsed.', 'smartbook' ) );
 		}
 
 		$taxonomy_columns = BookRowSchema::taxonomy_columns();

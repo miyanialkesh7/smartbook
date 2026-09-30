@@ -392,7 +392,7 @@ final class BookFields {
 					'<input type="number" id="%1$s" name="%1$s" value="%2$s" class="regular-text" %3$s />',
 					esc_attr( $id ),
 					esc_attr( (string) $value ),
-					self::numeric_attributes( $field )
+					self::numeric_attributes( $field ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every attribute value is passed through esc_attr() inside numeric_attributes().
 				);
 				break;
 

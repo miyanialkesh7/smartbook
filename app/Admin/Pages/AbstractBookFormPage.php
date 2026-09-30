@@ -230,6 +230,7 @@ abstract class AbstractBookFormPage implements Hookable {
 	 * @param int $post_id Book post ID.
 	 */
 	protected function maybe_attach_cover( int $post_id ): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- only called from handle_save() after check_admin_referer().
 		if ( ! isset( $_POST['sb_cover_image_id'] ) ) {
 			return;
 		}
@@ -242,6 +243,7 @@ abstract class AbstractBookFormPage implements Hookable {
 		}
 
 		set_post_thumbnail( $post_id, $attachment_id );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
@@ -257,6 +259,7 @@ abstract class AbstractBookFormPage implements Hookable {
 	 * @param int $post_id Book post ID.
 	 */
 	protected function maybe_attach_gallery( int $post_id ): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only called from handle_save() after check_admin_referer(); every id is cast with absint() and checked with wp_attachment_is_image().
 		if ( ! isset( $_POST['sb_gallery_ids'] ) ) {
 			return;
 		}
@@ -271,6 +274,7 @@ abstract class AbstractBookFormPage implements Hookable {
 		}
 
 		update_post_meta( $post_id, 'sb_gallery', implode( ',', $ids ) );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 	}
 
 	/**
@@ -295,6 +299,7 @@ abstract class AbstractBookFormPage implements Hookable {
 	 * @return array<string, mixed>
 	 */
 	protected function collect_posted_row(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- only called from handle_save() after check_admin_referer(); each value is sanitized per field by BookFields::sanitize() / BookRowSchema::sanitize_terms() in apply_row().
 		$data = array();
 
 		foreach ( BookFields::definitions() as $key => $field ) {
@@ -313,6 +318,7 @@ abstract class AbstractBookFormPage implements Hookable {
 		}
 
 		return $data;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 	}
 
 	/**

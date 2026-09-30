@@ -181,11 +181,13 @@ final class EditBookPage extends AbstractBookFormPage {
 	 * name as a hidden POST field on save (render_extra_hidden_fields()).
 	 */
 	private function book_id(): int {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- read-only lookup of the book id (absint); handle_save() verifies the nonce before using it and render() only displays.
 		if ( isset( $_POST['book_id'] ) ) {
 			return absint( $_POST['book_id'] );
 		}
 
 		return isset( $_GET['book_id'] ) ? absint( $_GET['book_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
@@ -272,7 +274,7 @@ final class EditBookPage extends AbstractBookFormPage {
 	 * {@inheritDoc}
 	 */
 	protected function render_extra_hidden_fields(): void {
-		printf( '<input type="hidden" name="book_id" value="%d" />', $this->book_id() );
+		printf( '<input type="hidden" name="book_id" value="%d" />', absint( $this->book_id() ) );
 	}
 
 	/**
