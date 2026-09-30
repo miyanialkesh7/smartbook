@@ -142,7 +142,7 @@ final class BookPostType implements Hookable {
 			'hierarchical'          => false,
 			'menu_position'         => 20,
 			'menu_icon'             => 'dashicons-book-alt',
-			'supports'              => array( 'title', 'editor', 'thumbnail', 'revisions', 'author', 'custom-fields' ),
+			'supports'              => array( 'title', 'editor', 'thumbnail', 'revisions', 'author', 'custom-fields', 'comments' ),
 			'can_export'            => true,
 			'delete_with_user'      => false,
 			'exclude_from_search'   => false,

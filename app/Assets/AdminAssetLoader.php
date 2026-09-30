@@ -65,8 +65,14 @@ final class AdminAssetLoader implements Hookable {
 			'sb-admin',
 			'sbAdmin',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'sb_admin_nonce' ),
+				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
+				'nonce'      => wp_create_nonce( 'sb_admin_nonce' ),
+				// So client-side draft cookies (see sb-admin.js'
+				// sb_initFormDraft()) use the same path WordPress's own
+				// cookies do, letting a PHP-side setcookie() (e.g.
+				// AddBookPage::handle_save() clearing the draft on
+				// success) actually reach and clear them.
+				'cookiePath' => defined( 'COOKIEPATH' ) && '' !== COOKIEPATH ? COOKIEPATH : '/',
 			)
 		);
 	}
@@ -96,6 +102,51 @@ final class AdminAssetLoader implements Hookable {
 			return true;
 		}
 
-		return '' !== $screen_id && str_starts_with( $screen_id, 'sb_' );
+		if ( $this->has_sb_prefix( $screen_id ) || $this->has_sb_prefix( $hook_suffix ) ) {
+			return true;
+		}
+
+		return $this->has_sb_prefix( $this->requested_page_slug() );
+	}
+
+	/**
+	 * Whether a screen id / hook suffix belongs to SmartBook.
+	 *
+	 * WordPress computes a submenu page's hook name/screen id from
+	 * sanitize_title() of its *top-level* menu's title, not that menu's
+	 * slug: AdminMenu registers the top-level menu with title "SmartBook"
+	 * (slug "sb_dashboard"), so every submenu page under it actually hooks
+	 * as "smartbook_page_{slug}" (e.g. "smartbook_page_sb_books") --
+	 * never "sb_..." -- with a single exception: the top-level menu's own
+	 * page (the "Dashboard" entry, added via add_menu_page()) hooks as
+	 * "toplevel_page_{menu_slug}", i.e. "toplevel_page_sb_dashboard",
+	 * which *does* start with "sb_" once that prefix is stripped. Relying
+	 * on this prefix alone therefore only ever matched the Dashboard page;
+	 * every other SmartBook admin page silently never got its assets --
+	 * see requested_page_slug() for the fix, which checks the reliable
+	 * signal instead: the plugin's own "page" query var.
+	 */
+	private function has_sb_prefix( string $id ): bool {
+		if ( '' === $id ) {
+			return false;
+		}
+
+		if ( str_starts_with( $id, 'toplevel_page_' ) ) {
+			$id = substr( $id, strlen( 'toplevel_page_' ) );
+		}
+
+		return str_starts_with( $id, 'sb_' );
+	}
+
+	/**
+	 * The "page" query var of the current admin.php?page=... request, if
+	 * any -- e.g. "sb_add_book". Unlike the screen id/hook suffix (see
+	 * has_sb_prefix()'s doc comment), this is the literal menu slug this
+	 * plugin registered, so it reliably starts with "sb_" for every
+	 * SmartBook admin.php page regardless of how WordPress happened to
+	 * compute that page's internal hook name.
+	 */
+	private function requested_page_slug(): string {
+		return isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen detection, not a state-changing action.
 	}
 }

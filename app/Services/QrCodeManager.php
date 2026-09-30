@@ -14,15 +14,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use chillerlan\QRCode\Output\QRCodeOutputException;
+use SmartBook\Frontend\BookScanPage;
 use SmartBook\PostTypes\BookPostType;
 use WP_Post;
 
 /**
  * Generates, stores, retrieves, and cleans up the QR code image for a
- * book. Each book's QR code encodes its own permalink and is saved as
- * an SVG file under uploads/sb-qrcodes/{post_id}.svg; the public URL to
- * that file is cached in the "sb_qr_code_url" post meta so callers
- * never need to touch the filesystem directly.
+ * book. Each book's QR code encodes its own permalink with
+ * Frontend\BookScanPage's "?sb_scan=1" query var appended, so scanning
+ * it opens that dedicated mobile page rather than however the active
+ * theme would otherwise render the book, and is saved as an SVG file
+ * under uploads/sb-qrcodes/{post_id}.svg; the public URL to that file
+ * is cached in the "sb_qr_code_url" post meta so callers never need to
+ * touch the filesystem directly.
  */
 final class QrCodeManager {
 
@@ -104,6 +108,8 @@ final class QrCodeManager {
 			return false;
 		}
 
+		$scan_url = add_query_arg( BookScanPage::QUERY_VAR, '1', $permalink );
+
 		$directory = $this->directory();
 
 		if ( ! wp_mkdir_p( $directory ) ) {
@@ -117,7 +123,7 @@ final class QrCodeManager {
 		$file_path = trailingslashit( $directory ) . $post_id . '.svg';
 
 		try {
-			$this->generator->generate_svg_file( $permalink, $file_path );
+			$this->generator->generate_svg_file( $scan_url, $file_path );
 		} catch ( QRCodeOutputException $exception ) {
 			$this->logger->error(
 				'QR code generation failed.',

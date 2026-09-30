@@ -24,24 +24,35 @@ trait RedirectsWithNotice {
 
 	/**
 	 * The admin page slug to redirect back to; implemented by the class
-	 * using this trait.
+	 * using this trait. Protected, not private: AbstractBookFormPage uses
+	 * this trait itself, but it's AddBookPage/EditBookPage -- its
+	 * subclasses -- that actually implement this and call
+	 * redirect_with_notice() below from their own handle_save(); a
+	 * private trait method is only visible to the exact class that used
+	 * the trait, not to further subclasses of it.
 	 */
-	abstract private function notice_page_slug(): string;
+	abstract protected function notice_page_slug(): string;
 
 	/**
 	 * Redirect back to the page with a result notice, then terminate the
 	 * request (standard for a POST/admin-post.php handler).
 	 *
-	 * @param string $type    Notice type, "success" or "error".
-	 * @param string $message Notice message to display.
+	 * @param string               $type        "error" or "success".
+	 * @param string               $message     Notice text.
+	 * @param array<string, mixed> $extra_args  Additional query args to carry over (e.g.
+	 *                                           EditBookPage's "book_id", so the page it
+	 *                                           redirects back to still knows which book).
 	 */
-	private function redirect_with_notice( string $type, string $message ): never {
+	protected function redirect_with_notice( string $type, string $message, array $extra_args = array() ): never {
 		wp_safe_redirect(
 			add_query_arg(
-				array(
-					'page'           => $this->notice_page_slug(),
-					'sb_notice'      => rawurlencode( $message ),
-					'sb_notice_type' => $type,
+				array_merge(
+					$extra_args,
+					array(
+						'page'           => $this->notice_page_slug(),
+						'sb_notice'      => rawurlencode( $message ),
+						'sb_notice_type' => $type,
+					)
 				),
 				admin_url( 'admin.php' )
 			)
@@ -55,11 +66,7 @@ trait RedirectsWithNotice {
 	 *
 	 * @return array{type: string, message: string}|null
 	 */
-	private function consume_notice(): ?array {
-		// Read-only: this is this same class's own one-time notice, set by
-		// its own prior redirect_with_notice() call, not attacker input
-		// acted upon; only ever echoed back, escaped, to the same user.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	protected function consume_notice(): ?array {
 		if ( ! isset( $_GET['sb_notice'] ) ) {
 			return null;
 		}
@@ -77,7 +84,7 @@ trait RedirectsWithNotice {
 	/**
 	 * Render the pending notice, if any, escaping it at the point of output.
 	 */
-	private function render_notice(): void {
+	protected function render_notice(): void {
 		$notice = $this->consume_notice();
 
 		if ( null === $notice ) {

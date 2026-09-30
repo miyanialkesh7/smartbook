@@ -23,10 +23,10 @@ use WP_Post;
  * print-optimized A4 sheet of labels for the chosen books.
  *
  * Concrete subclasses only describe what makes their label kind
- * different (page slug/title, how to ensure the image exists, where to
- * find it, and any extra per-label content); the selection checklist,
- * print-sheet shell, and book-lookup plumbing live here once instead of
- * being duplicated per label kind.
+ * different (page slug/title, which image(s) a label carries and how to
+ * ensure each exists, and any extra per-label content); the selection
+ * checklist, print-sheet shell, and book-lookup plumbing live here once
+ * instead of being duplicated per label kind.
  */
 abstract class AbstractLabelsPage {
 
@@ -46,23 +46,16 @@ abstract class AbstractLabelsPage {
 	abstract protected function selection_intro(): string;
 
 	/**
-	 * Make sure a book's label image exists, generating it if not.
+	 * The image(s) to print on one book's label -- most label kinds
+	 * (QrLabelsPage, BarcodeLabelsPage) return exactly one; a kind
+	 * combining more than one image per label (AllLabelsPage) returns
+	 * more. Responsible for making sure each image actually exists
+	 * (generating it if not) before returning its URL; an entry whose
+	 * "url" comes back '' is skipped when the label is rendered.
 	 *
-	 * @param int $post_id Book post ID.
+	 * @return array<int, array{url: string, alt: string}>
 	 */
-	abstract protected function ensure_asset( int $post_id ): void;
-
-	/**
-	 * Public URL of a book's label image, or '' if none exists.
-	 *
-	 * @param int $post_id Book post ID.
-	 */
-	abstract protected function image_url( int $post_id ): string;
-
-	/**
-	 * Alt text for the label image.
-	 */
-	abstract protected function image_alt(): string;
+	abstract protected function images( int $post_id ): array;
 
 	/**
 	 * Render the page: the print sheet when "sb_print_labels=1" is
@@ -110,6 +103,15 @@ abstract class AbstractLabelsPage {
 	}
 
 	/**
+	 * Extra class(es) on the print sheet's grid wrapper, beyond the base
+	 * "sb-labels-grid" -- e.g. BookCardsPage adds a modifier for its
+	 * wider per-book layout. Empty by default.
+	 */
+	protected function sheet_modifier_class(): string {
+		return '';
+	}
+
+	/**
 	 * Render the "which books?" checklist.
 	 */
 	private function render_selection_form(): void {
@@ -127,13 +129,12 @@ abstract class AbstractLabelsPage {
 			return;
 		}
 
-		printf( '<form method="get" action="%s">', esc_url( admin_url( 'admin.php' ) ) );
-		wp_nonce_field( self::print_nonce_action( $this->page_slug() ) );
+		printf( '<form method="get" action="%s" class="sb-panel sb-label-selection">', esc_url( admin_url( 'admin.php' ) ) );
 		printf( '<input type="hidden" name="page" value="%s" />', esc_attr( $this->page_slug() ) );
 		echo '<input type="hidden" name="sb_print_labels" value="1" />';
 
 		printf(
-			'<p><label><input type="checkbox" id="sb-select-all-books" /> %s</label></p>',
+			'<p class="sb-label-select-list__select-all"><label><input type="checkbox" id="sb-select-all-books" /> %s</label></p>',
 			esc_html__( 'Select All', 'smartbook' )
 		);
 
@@ -141,9 +142,10 @@ abstract class AbstractLabelsPage {
 
 		foreach ( $books as $book ) {
 			printf(
-				'<li><label><input type="checkbox" name="sb_book_id[]" value="%1$d" class="sb-label-select-list__checkbox" %2$s /> %3$s</label></li>',
-				$book->ID, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the "%1$d" specifier already coerces to an integer, no HTML can pass through.
+				'<li><label><input type="checkbox" name="sb_book_id[]" value="%1$d" class="sb-label-select-list__checkbox" %2$s />%3$s<span class="sb-label-select-list__title">%4$s</span></label></li>',
+				$book->ID,
 				checked( array() === $preselected || in_array( $book->ID, $preselected, true ), true, false ),
+				$this->selection_cover( $book ),
 				esc_html( get_the_title( $book ) )
 			);
 		}
@@ -156,16 +158,24 @@ abstract class AbstractLabelsPage {
 	}
 
 	/**
+	 * A small cover thumbnail (or placeholder glyph) for one book's row
+	 * in the selection checklist, already safe to echo directly.
+	 */
+	private function selection_cover( WP_Post $book ): string {
+		if ( has_post_thumbnail( $book ) ) {
+			return get_the_post_thumbnail( $book, array( 32, 48 ), array( 'class' => 'sb-label-select-list__cover' ) );
+		}
+
+		return '<span class="sb-label-select-list__cover sb-label-select-list__cover--placeholder" aria-hidden="true">&#128214;</span>';
+	}
+
+	/**
 	 * Render the print-optimized A4 label sheet.
 	 *
 	 * @param int[] $ids Book IDs to print; empty means every book.
 	 */
 	private function render_print_sheet( array $ids ): void {
 		$books = array() === $ids ? $this->all_books() : $this->books_by_ids( $ids );
-
-		foreach ( $books as $book ) {
-			$this->ensure_asset( $book->ID );
-		}
 
 		echo '<div class="wrap sb-admin-page sb-label-print-page">';
 
@@ -195,7 +205,10 @@ abstract class AbstractLabelsPage {
 			return;
 		}
 
-		echo '<div class="sb-labels-grid">';
+		printf(
+			'<div class="%s">',
+			esc_attr( trim( 'sb-labels-grid ' . $this->sheet_modifier_class() ) )
+		);
 
 		foreach ( $books as $book ) {
 			$this->render_label( $book );
@@ -206,21 +219,26 @@ abstract class AbstractLabelsPage {
 	}
 
 	/**
-	 * Render a single label: image, title, any extra content, and shelf.
-	 *
-	 * @param WP_Post $book Book post.
+	 * Render a single label: image(s), title, any extra content, and
+	 * shelf. Overridable -- BookCardsPage replaces this entirely with a
+	 * richer "library card" layout, while still reusing images(),
+	 * term_names(), and every bit of surrounding selection/print-sheet
+	 * plumbing here.
 	 */
-	private function render_label( WP_Post $book ): void {
-		$image_url = $this->image_url( $book->ID );
-		$shelf     = $this->shelf_names( $book->ID );
+	protected function render_label( WP_Post $book ): void {
+		$shelf = $this->shelf_names( $book->ID );
 
 		echo '<div class="sb-label">';
 
-		if ( '' !== $image_url ) {
+		foreach ( $this->images( $book->ID ) as $image ) {
+			if ( '' === $image['url'] ) {
+				continue;
+			}
+
 			printf(
 				'<img src="%1$s" alt="%2$s" class="sb-label__image" />',
-				esc_url( $image_url ),
-				esc_attr( $this->image_alt() )
+				esc_url( $image['url'] ),
+				esc_attr( $image['alt'] )
 			);
 		}
 
@@ -241,7 +259,16 @@ abstract class AbstractLabelsPage {
 	 * @param int $post_id Book post ID.
 	 */
 	private function shelf_names( int $post_id ): string {
-		$terms = get_the_terms( $post_id, ShelfTaxonomy::SLUG );
+		return $this->term_names( $post_id, ShelfTaxonomy::SLUG );
+	}
+
+	/**
+	 * Comma-separated term names for one taxonomy on a book, '' if none
+	 * (or the taxonomy isn't attached to it). Shared by shelf_names()
+	 * here and BookCardsPage's own author/genre lines.
+	 */
+	protected function term_names( int $post_id, string $taxonomy ): string {
+		$terms = get_the_terms( $post_id, $taxonomy );
 
 		if ( empty( $terms ) || is_wp_error( $terms ) ) {
 			return '';

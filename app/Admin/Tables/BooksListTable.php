@@ -11,6 +11,7 @@ namespace SmartBook\Admin\Tables;
 
 use SmartBook\Admin\Pages\AbstractLabelsPage;
 use SmartBook\PostTypes\BookPostType;
+use SmartBook\Services\CommentRating;
 use SmartBook\Taxonomies\AuthorTaxonomy;
 use SmartBook\Taxonomies\GenreTaxonomy;
 use SmartBook\Taxonomies\ShelfTaxonomy;
@@ -23,10 +24,10 @@ if ( ! class_exists( WP_List_Table::class ) ) {
 }
 
 /**
- * Renders the "sb_book" catalog as a WP_List_Table: cover, title,
- * author, ISBN, genre, shelf, reading status, rating, favorite, and a
- * row-level actions column, with column sorting, pagination, search,
- * status view tabs, and genre/shelf/favorite filters.
+ * Renders the "sb_book" catalog as a WP_List_Table: cover, title, post
+ * status, author, ISBN, genre, shelf, reading status, rating, favorite,
+ * and a row-level actions column, with column sorting, pagination,
+ * search, status view tabs, and genre/shelf/favorite filters.
  *
  * This class only builds the query and renders rows; Admin\Pages\BooksPage
  * owns capability checks and processes bulk/row actions before ever
@@ -35,8 +36,16 @@ if ( ! class_exists( WP_List_Table::class ) ) {
 final class BooksListTable extends WP_List_Table {
 
 	/**
-	 * Set up the list table's singular/plural labels.
+	 * Reader ratings for the current page's rows, keyed by post ID --
+	 * populated once in prepare_items() (CommentRating::averages(), a
+	 * single batched query) rather than column_rating() calling
+	 * CommentRating::average() per row, which would run one get_comments()
+	 * query for every visible book.
+	 *
+	 * @var array<int, array{0: float, 1: int}>
 	 */
+	private array $ratings = array();
+
 	public function __construct() {
 		parent::__construct(
 			array(
@@ -52,17 +61,18 @@ final class BooksListTable extends WP_List_Table {
 	 */
 	public function get_columns(): array {
 		return array(
-			'cb'       => '<input type="checkbox" />',
-			'cover'    => __( 'Cover', 'smartbook' ),
-			'title'    => __( 'Title', 'smartbook' ),
-			'author'   => __( 'Author', 'smartbook' ),
-			'isbn'     => __( 'ISBN', 'smartbook' ),
-			'genre'    => __( 'Genre', 'smartbook' ),
-			'shelf'    => __( 'Shelf', 'smartbook' ),
-			'status'   => __( 'Reading Status', 'smartbook' ),
-			'rating'   => __( 'Rating', 'smartbook' ),
-			'favorite' => __( 'Favorite', 'smartbook' ),
-			'actions'  => __( 'Actions', 'smartbook' ),
+			'cb'          => '<input type="checkbox" />',
+			'cover'       => __( 'Cover', 'smartbook' ),
+			'title'       => __( 'Title', 'smartbook' ),
+			'post_status' => __( 'Status', 'smartbook' ),
+			'author'      => __( 'Author', 'smartbook' ),
+			'isbn'        => __( 'ISBN', 'smartbook' ),
+			'genre'       => __( 'Genre', 'smartbook' ),
+			'shelf'       => __( 'Shelf', 'smartbook' ),
+			'status'      => __( 'Reading Status', 'smartbook' ),
+			'rating'      => __( 'Rating', 'smartbook' ),
+			'favorite'    => __( 'Favorite', 'smartbook' ),
+			'actions'     => __( 'Actions', 'smartbook' ),
 		);
 	}
 
@@ -74,7 +84,6 @@ final class BooksListTable extends WP_List_Table {
 			'title'  => array( 'title', false ),
 			'isbn'   => array( 'sb_isbn', false ),
 			'status' => array( 'sb_status', false ),
-			'rating' => array( 'sb_rating', false ),
 		);
 	}
 
@@ -89,11 +98,11 @@ final class BooksListTable extends WP_List_Table {
 			);
 		}
 
+		// Label printing is reached from the "Labels" sidebar page instead
+		// (Admin\Pages\LabelsPage), not from here.
 		return array(
-			'trash'         => __( 'Move to Trash', 'smartbook' ),
-			'bulk_edit'     => __( 'Bulk Edit', 'smartbook' ),
-			'print_qr'      => __( 'Print QR Labels', 'smartbook' ),
-			'print_barcode' => __( 'Print Barcode Labels', 'smartbook' ),
+			'trash'     => __( 'Move to Trash', 'smartbook' ),
+			'bulk_edit' => __( 'Bulk Edit', 'smartbook' ),
 		);
 	}
 
@@ -194,7 +203,8 @@ final class BooksListTable extends WP_List_Table {
 
 		$query = new WP_Query( $args );
 
-		$this->items = $query->posts;
+		$this->items   = $query->posts;
+		$this->ratings = CommentRating::averages( wp_list_pluck( $this->items, 'ID' ) );
 
 		$this->set_pagination_args(
 			array(
@@ -237,15 +247,43 @@ final class BooksListTable extends WP_List_Table {
 	}
 
 	/**
-	 * Title column, linking to the native post edit screen.
+	 * Title column, linking to the custom Edit Book page.
 	 *
 	 * @param WP_Post $item Current row.
 	 */
 	public function column_title( $item ): string {
 		return sprintf(
 			'<strong><a class="row-title" href="%s">%s</a></strong>',
-			esc_url( (string) get_edit_post_link( $item->ID ) ),
+			esc_url( $this->edit_book_link( $item->ID ) ),
 			esc_html( get_the_title( $item ) )
+		);
+	}
+
+	/**
+	 * Post status badge (Published/Draft/Pending Review/Private/Trash) --
+	 * distinct from column_status()'s "Reading Status" (the "sb_status"
+	 * meta) -- needed because the "All" view tab (see get_views()) mixes
+	 * every non-trash status together, with nothing otherwise showing
+	 * which of them a given row actually has.
+	 *
+	 * @param WP_Post $item Current row.
+	 */
+	public function column_post_status( WP_Post $item ): string {
+		$labels = array(
+			'publish' => __( 'Published', 'smartbook' ),
+			'draft'   => __( 'Draft', 'smartbook' ),
+			'pending' => __( 'Pending Review', 'smartbook' ),
+			'private' => __( 'Private', 'smartbook' ),
+			'trash'   => __( 'Trash', 'smartbook' ),
+		);
+
+		$status = $item->post_status;
+		$label  = $labels[ $status ] ?? ucfirst( $status );
+
+		return sprintf(
+			'<span class="sb-badge sb-badge--post-%1$s">%2$s</span>',
+			esc_attr( $status ),
+			esc_html( $label )
 		);
 	}
 
@@ -328,27 +366,33 @@ final class BooksListTable extends WP_List_Table {
 	}
 
 	/**
-	 * Star rating, 0-5.
+	 * Average reader star rating (from the $ratings cache prepare_items()
+	 * populates via CommentRating::averages(), front-end commenters' own
+	 * ratings), rounded to the nearest whole star, plus how many ratings
+	 * it's based on. An em dash when nobody has rated the book yet.
 	 *
 	 * @param WP_Post $item Current row.
 	 */
 	public function column_rating( WP_Post $item ): string {
-		$rating = max( 0, min( 5, (int) get_post_meta( $item->ID, 'sb_rating', true ) ) );
+		[ $average, $count ] = $this->ratings[ $item->ID ] ?? array( 0.0, 0 );
 
-		if ( 0 === $rating ) {
+		if ( 0 === $count ) {
 			return '&#8212;';
 		}
 
+		$rounded = (int) round( $average );
+
 		return sprintf(
-			'<span class="sb-books-table__rating" aria-label="%1$s">%2$s</span>',
+			'<span class="sb-books-table__rating" aria-label="%1$s">%2$s</span> <span class="sb-books-table__rating-count">(%3$d)</span>',
 			esc_attr(
 				sprintf(
-					/* translators: %d: rating out of 5. */
-					__( '%d out of 5', 'smartbook' ),
-					$rating
+					/* translators: %s: average rating out of 5, one decimal place. */
+					__( '%s out of 5', 'smartbook' ),
+					number_format_i18n( $average, 1 )
 				)
 			),
-			esc_html( str_repeat( '★', $rating ) . str_repeat( '☆', 5 - $rating ) )
+			esc_html( str_repeat( '★', $rounded ) . str_repeat( '☆', 5 - $rounded ) ),
+			$count
 		);
 	}
 
@@ -381,21 +425,21 @@ final class BooksListTable extends WP_List_Table {
 
 		$links[] = sprintf(
 			'<a class="button button-small" href="%s">%s</a>',
-			esc_url( (string) get_edit_post_link( $item->ID ) ),
+			esc_url( $this->edit_book_link( $item->ID ) ),
 			esc_html__( 'Edit', 'smartbook' )
 		);
 
-		$links[] = sprintf(
-			'<a class="button button-small" href="%s">%s</a>',
-			esc_url( $this->print_label_url( 'sb_qr_labels', $item->ID ) ),
-			esc_html__( 'Print QR Label', 'smartbook' )
-		);
+		if ( ! $is_trashed ) {
+			$view_url = $this->view_book_link( $item );
 
-		$links[] = sprintf(
-			'<a class="button button-small" href="%s">%s</a>',
-			esc_url( $this->print_label_url( 'sb_barcode_labels', $item->ID ) ),
-			esc_html__( 'Print Barcode Label', 'smartbook' )
-		);
+			if ( '' !== $view_url ) {
+				$links[] = sprintf(
+					'<a class="button button-small" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
+					esc_url( $view_url ),
+					esc_html( 'publish' === $item->post_status ? __( 'View', 'smartbook' ) : __( 'Preview', 'smartbook' ) )
+				);
+			}
+		}
 
 		if ( $is_trashed ) {
 			$links[] = sprintf(
@@ -422,23 +466,35 @@ final class BooksListTable extends WP_List_Table {
 	}
 
 	/**
-	 * URL to this book's single-label print sheet for a given label page.
-	 *
-	 * @param string $page_slug Either "sb_qr_labels" or "sb_barcode_labels".
-	 * @param int    $post_id   Book post ID.
+	 * URL to the custom Edit Book page (Admin\Pages\EditBookPage) for a
+	 * given book -- not get_edit_post_link()/the native post editor,
+	 * which EditBookPage's own redirect_native_edit() bounces back here
+	 * anyway; linking straight to it avoids that extra redirect hop.
 	 */
-	private function print_label_url( string $page_slug, int $post_id ): string {
-		return wp_nonce_url(
-			add_query_arg(
-				array(
-					'page'            => $page_slug,
-					'sb_book_id'      => array( $post_id ),
-					'sb_print_labels' => '1',
-				),
-				admin_url( 'admin.php' )
+	private function edit_book_link( int $post_id ): string {
+		return add_query_arg(
+			array(
+				'page'    => 'sb_edit_book',
+				'book_id' => $post_id,
 			),
 			AbstractLabelsPage::print_nonce_action( $page_slug )
 		);
+	}
+
+	/**
+	 * URL to view a book on the live front-end (its permalink once
+	 * published, WordPress's own draft-preview link otherwise). Not
+	 * called for a trashed book -- see column_actions() -- since neither
+	 * link means anything for one.
+	 */
+	private function view_book_link( WP_Post $item ): string {
+		if ( 'publish' === $item->post_status ) {
+			return (string) get_permalink( $item );
+		}
+
+		$preview_link = get_preview_post_link( $item );
+
+		return null !== $preview_link ? $preview_link : '';
 	}
 
 	/**
@@ -528,14 +584,6 @@ final class BooksListTable extends WP_List_Table {
 		$orderby = isset( $_REQUEST['orderby'] ) ? sanitize_key( wp_unslash( $_REQUEST['orderby'] ) ) : 'date';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$order = isset( $_REQUEST['order'] ) && 'asc' === strtolower( sanitize_key( wp_unslash( $_REQUEST['order'] ) ) ) ? 'ASC' : 'DESC';
-
-		if ( 'sb_rating' === $orderby ) {
-			$args['meta_key'] = 'sb_rating'; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-			$args['orderby']  = 'meta_value_num';
-			$args['order']    = $order;
-
-			return;
-		}
 
 		if ( in_array( $orderby, array( 'sb_isbn', 'sb_status' ), true ) ) {
 			$args['meta_key'] = $orderby; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key

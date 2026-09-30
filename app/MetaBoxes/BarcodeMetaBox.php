@@ -19,6 +19,8 @@ use SmartBook\Services\BarcodeManager;
 use SmartBook\Services\BarcodeServiceProvider;
 use WP_Post;
 
+use function sb_option;
+
 /**
  * Side-column meta box showing a book's generated Code128 barcode
  * image and value, a button to force-regenerate it, and a link to its
@@ -47,8 +49,15 @@ final class BarcodeMetaBox implements Hookable {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * No-op when the "enable_barcode" setting is off (Settings\Settings),
+	 * so this meta box simply never appears on the book edit screen.
 	 */
 	public function register_hooks(): void {
+		if ( ! sb_option( 'enable_barcode', true ) ) {
+			return;
+		}
+
 		add_action( 'add_meta_boxes', array( $this, 'add' ) );
 	}
 

@@ -26,7 +26,7 @@ use WP_Post;
  * Every write goes through a nonce check plus a capability check
  * (can_save()) and per-field sanitization (BookFields::sanitize()); every
  * read goes through esc_attr()/esc_html()/esc_textarea() at the point
- * of output (render_field()).
+ * of output (BookFields::render_field()).
  */
 final class BookDetailsMetaBox implements Hookable {
 
@@ -79,12 +79,12 @@ final class BookDetailsMetaBox implements Hookable {
 
 		echo '<div class="sb-meta-box">';
 
-		foreach ( $this->sections() as $section ) {
+		foreach ( BookFields::visible_sections() as $section ) {
 			printf( '<h3 class="sb-meta-box__section-title">%s</h3>', esc_html( $section['title'] ) );
 			echo '<div class="sb-meta-box__grid">';
 
 			foreach ( $section['fields'] as $key ) {
-				$this->render_field( $post, $key, $fields[ $key ] );
+				BookFields::render_field( $key, $fields[ $key ], get_post_meta( $post->ID, $key, true ) );
 			}
 
 			echo '</div>';
@@ -104,8 +104,18 @@ final class BookDetailsMetaBox implements Hookable {
 			return;
 		}
 
-		foreach ( BookFields::definitions() as $key => $field ) {
-			$this->save_field( $post_id, $key, $field );
+		$fields = BookFields::definitions();
+
+		// Only save fields belonging to a currently-visible section: a
+		// disabled section's fields are removed from the form entirely,
+		// and a checkbox field sends no value at all when its containing
+		// section wasn't even rendered, which save_field()'s "checkbox"
+		// branch would otherwise read as "unchecked" and persist as such,
+		// silently wiping stored data every time the feature is off.
+		foreach ( BookFields::visible_sections() as $section ) {
+			foreach ( $section['fields'] as $key ) {
+				$this->save_field( $post_id, $key, $fields[ $key ] );
+			}
 		}
 	}
 
@@ -167,140 +177,5 @@ final class BookDetailsMetaBox implements Hookable {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified in can_save(); value is sanitized immediately below via BookFields::sanitize().
 		update_post_meta( $post_id, $key, BookFields::sanitize( $key, wp_unslash( $_POST[ $key ] ) ) );
-	}
-
-	/**
-	 * Render a single field's label plus its typed input control, escaping
-	 * every dynamic value at the point of output.
-	 *
-	 * @param WP_Post              $post  Post currently being edited.
-	 * @param string               $key   Meta key, e.g. "sb_isbn".
-	 * @param array<string, mixed> $field Field definition from BookFields::definitions().
-	 */
-	private function render_field( WP_Post $post, string $key, array $field ): void {
-		$value = get_post_meta( $post->ID, $key, true );
-		$id    = esc_attr( $key );
-
-		if ( 'checkbox' === $field['type'] ) {
-			printf(
-				'<div class="sb-field-group sb-field-group--checkbox"><label for="%1$s"><input type="checkbox" id="%1$s" name="%1$s" value="1" %2$s /> %3$s</label></div>',
-				esc_attr( $id ),
-				checked( '1', $value, false ),
-				esc_html( $field['label'] )
-			);
-
-			return;
-		}
-
-		printf(
-			'<div class="sb-field-group%s">',
-			'textarea' === $field['type'] ? ' sb-field-group--full' : ''
-		);
-
-		printf( '<label for="%1$s">%2$s</label>', esc_attr( $id ), esc_html( $field['label'] ) );
-
-		switch ( $field['type'] ) {
-			case 'textarea':
-				printf(
-					'<textarea id="%1$s" name="%1$s" class="widefat" rows="4">%2$s</textarea>',
-					esc_attr( $id ),
-					esc_textarea( (string) $value )
-				);
-				break;
-
-			case 'select':
-				printf( '<select id="%1$s" name="%1$s" class="regular-text">', esc_attr( $id ) );
-
-				foreach ( $field['options'] as $option_value => $option_label ) {
-					printf(
-						'<option value="%1$s" %2$s>%3$s</option>',
-						esc_attr( $option_value ),
-						selected( $value, $option_value, false ),
-						esc_html( $option_label )
-					);
-				}
-
-				echo '</select>';
-				break;
-
-			case 'number':
-				printf(
-					'<input type="number" id="%1$s" name="%1$s" value="%2$s" class="regular-text" %3$s />',
-					esc_attr( $id ),
-					esc_attr( (string) $value ),
-					$this->numeric_attributes( $field ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped fragment, see numeric_attributes().
-				);
-				break;
-
-			case 'date':
-				printf(
-					'<input type="date" id="%1$s" name="%1$s" value="%2$s" class="regular-text" />',
-					esc_attr( $id ),
-					esc_attr( (string) $value )
-				);
-				break;
-
-			default:
-				printf(
-					'<input type="text" id="%1$s" name="%1$s" value="%2$s" class="regular-text" />',
-					esc_attr( $id ),
-					esc_attr( (string) $value )
-				);
-				break;
-		}
-
-		if ( ! empty( $field['description'] ) ) {
-			printf( '<p class="description">%s</p>', esc_html( $field['description'] ) );
-		}
-
-		echo '</div>';
-	}
-
-	/**
-	 * Build an already-escaped "min=... max=... step=..." attribute
-	 * fragment for a number input, omitting any bound the field doesn't declare.
-	 *
-	 * @param array<string, mixed> $field Field definition, may contain "min", "max", "step".
-	 */
-	private function numeric_attributes( array $field ): string {
-		$attributes = array();
-
-		foreach ( array( 'min', 'max', 'step' ) as $attribute ) {
-			if ( isset( $field[ $attribute ] ) ) {
-				$attributes[] = sprintf( '%s="%s"', $attribute, esc_attr( (string) $field[ $attribute ] ) );
-			}
-		}
-
-		return implode( ' ', $attributes );
-	}
-
-	/**
-	 * Field keys grouped into display sections, in render order.
-	 *
-	 * @return array<string, array{title: string, fields: string[]}>
-	 */
-	private function sections(): array {
-		return array(
-			'identification' => array(
-				'title'  => __( 'Identification', 'smartbook' ),
-				'fields' => array( 'sb_isbn', 'sb_isbn13', 'sb_barcode', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
-			),
-			'condition'      => array(
-				'title'  => __( 'Condition & Value', 'smartbook' ),
-				'fields' => array( 'sb_condition', 'sb_price', 'sb_purchase_date' ),
-			),
-			'reading'        => array(
-				'title'  => __( 'Reading Progress', 'smartbook' ),
-				'fields' => array( 'sb_status', 'sb_progress', 'sb_rating', 'sb_favorite', 'sb_wishlist' ),
-			),
-			'borrow'         => array(
-				'title'  => __( 'Borrow Management', 'smartbook' ),
-				'fields' => array( 'sb_borrowed', 'sb_borrowed_to', 'sb_borrow_date', 'sb_return_date', 'sb_reminder', 'sb_returned', 'sb_lost' ),
-			),
-			'notes'          => array(
-				'title'  => __( 'Notes', 'smartbook' ),
-				'fields' => array( 'sb_notes', 'sb_summary' ),
-			),
-		);
 	}
 }

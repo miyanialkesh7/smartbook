@@ -15,9 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use SmartBook\Admin\Support\RedirectsWithNotice;
 use SmartBook\Admin\Tables\BooksListTable;
+use SmartBook\Core\Contracts\Hookable;
 use SmartBook\MetaBoxes\BookFields;
 use SmartBook\PostTypes\BookPostType;
-use SmartBook\Services\BarcodeManager;
 use SmartBook\Taxonomies\GenreTaxonomy;
 use SmartBook\Taxonomies\ShelfTaxonomy;
 
@@ -31,8 +31,19 @@ use SmartBook\Taxonomies\ShelfTaxonomy;
  * nonce, reused for single-row action links too) and capability-checked
  * per post via current_user_can( 'edit_post' | 'delete_post', $id ),
  * which resolves through BookPostType's custom capability mapping.
+ *
+ * Trash/untrash/delete and the bulk-edit "Apply Changes" submission are
+ * both processed on "admin_init" (maybe_process_action()), not inline in
+ * render() -- render() is this page's add_submenu_page() callback,
+ * invoked well after wp-admin's own header/scripts have already been
+ * output, so a wp_safe_redirect() attempted from inside it always fails
+ * with a "headers already sent" warning (the redirect Location header
+ * never actually reaches the browser, but the exit; still runs, leaving
+ * a broken half-rendered page). "admin_init" fires before any of that
+ * output starts, so the exact same redirect_with_notice() calls work
+ * correctly from there instead.
  */
-final class BooksPage {
+final class BooksPage implements Hookable {
 
 	use RedirectsWithNotice;
 
@@ -47,29 +58,85 @@ final class BooksPage {
 	private const BULK_EDIT_NONCE_ACTION = 'sb_bulk_edit_apply';
 
 	/**
-	 * Create the books page.
-	 *
-	 * @param BarcodeManager $barcodes Barcode storage/lifecycle manager, used by the "Search by barcode" scan box.
+	 * {@inheritDoc}
 	 */
-	public function __construct( private readonly BarcodeManager $barcodes ) {
+	public function register_hooks(): void {
+		add_action( 'admin_init', array( $this, 'maybe_process_action' ) );
 	}
 
 	/**
-	 * Render the page: dispatches to the bulk-edit picker, processes a
-	 * pending action, resolves a barcode scan, or renders the list table.
+	 * Process a pending trash/untrash/delete row action or a bulk-edit
+	 * "Apply Changes" submission, if this request is actually for this
+	 * page -- both end in a redirect (see this class's own doc comment
+	 * for why that has to happen here, on "admin_init", rather than
+	 * inline in render()). Anything else (a plain page view, or the
+	 * bulk-edit *picker* itself) is left entirely to render().
 	 */
-	public function render(): void {
-		if ( ! current_user_can( BookPostType::CAP_EDIT_BOOKS ) ) {
-			wp_die( esc_html__( 'You do not have permission to access this page.', 'smartbook' ) );
+	public function maybe_process_action(): void {
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		if ( self::PAGE_SLUG !== $page ) {
+			return;
 		}
 
-		$this->maybe_handle_barcode_scan();
+		if ( ! current_user_can( BookPostType::CAP_EDIT_BOOKS ) ) {
+			return;
+		}
 
 		$ids = $this->requested_ids();
 
 		if ( $this->is_bulk_edit_apply_request() ) {
 			$this->handle_bulk_edit_apply( $ids );
 		}
+
+		$action = ( new BooksListTable() )->current_action();
+
+		if ( in_array( $action, array( 'trash', 'untrash', 'delete' ), true ) && array() !== $ids ) {
+			$this->handle_row_action( $action, $ids );
+		}
+	}
+
+	/**
+	 * Register this page's "Screen Options" tab content: a "Number of
+	 * items per page" field (BooksListTable::prepare_items() already
+	 * reads back the "sb_books_per_page" user option this saves, via
+	 * WP_List_Table::get_items_per_page()) and per-column show/hide
+	 * checkboxes for every column BooksListTable defines. Hooked onto
+	 * this page's own "load-{hook}" action from AdminMenu::register() --
+	 * without an "option" registered here (or a "manage_{screen}_columns"
+	 * filter), WP_Screen::show_screen_options() has nothing to show and
+	 * the tab doesn't render at all.
+	 */
+	public function add_screen_options(): void {
+		add_screen_option(
+			'per_page',
+			array(
+				'label'   => __( 'Books', 'smartbook' ),
+				'default' => 20,
+				'option'  => 'sb_books_per_page',
+			)
+		);
+
+		$screen = get_current_screen();
+
+		if ( null !== $screen ) {
+			add_filter( "manage_{$screen->id}_columns", array( new BooksListTable(), 'get_columns' ) );
+		}
+	}
+
+	/**
+	 * Render the page: dispatches to the bulk-edit picker, or renders the
+	 * list table. Trash/untrash/delete and the bulk-edit "Apply Changes"
+	 * submission are already handled by maybe_process_action() on
+	 * "admin_init" (and end in a redirect, so this point is never reached
+	 * for those) -- only the bulk-edit *picker* itself is rendered here.
+	 */
+	public function render(): void {
+		if ( ! current_user_can( BookPostType::CAP_EDIT_BOOKS ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'smartbook' ) );
+		}
+
+		$ids = $this->requested_ids();
 
 		$table  = new BooksListTable();
 		$action = $table->current_action();
@@ -80,32 +147,17 @@ final class BooksPage {
 			return;
 		}
 
-		if ( 'print_qr' === $action && array() !== $ids ) {
-			check_admin_referer( 'bulk-books' );
-			$this->redirect_to_print_labels( 'sb_qr_labels', $ids );
-		}
-
-		if ( 'print_barcode' === $action && array() !== $ids ) {
-			check_admin_referer( 'bulk-books' );
-			$this->redirect_to_print_labels( 'sb_barcode_labels', $ids );
-		}
-
-		if ( in_array( $action, array( 'trash', 'untrash', 'delete' ), true ) && array() !== $ids ) {
-			$this->handle_row_action( $action, $ids );
-		}
-
 		$table->prepare_items();
 
 		echo '<div class="wrap sb-admin-page">';
 		printf( '<h1>%s ', esc_html__( 'Books', 'smartbook' ) );
 		printf(
 			'<a href="%s" class="page-title-action">%s</a></h1>',
-			esc_url( admin_url( 'post-new.php?post_type=' . BookPostType::SLUG ) ),
+			esc_url( admin_url( 'admin.php?page=sb_add_book' ) ),
 			esc_html__( 'Add New', 'smartbook' )
 		);
 
 		$this->render_notice();
-		$this->render_scan_form();
 
 		echo '<form method="post">';
 		printf( '<input type="hidden" name="page" value="%s" />', esc_attr( self::PAGE_SLUG ) );
@@ -115,63 +167,6 @@ final class BooksPage {
 		echo '</form>';
 
 		echo '</div>';
-	}
-
-	/**
-	 * If a "sb_barcode_scan" value is present (typed, or entered by a
-	 * USB barcode scanner acting as a keyboard), look it up and redirect
-	 * straight to the matching book's edit screen — or back to this page
-	 * with a "not found" notice. A plain text input submitting on Enter
-	 * is exactly how barcode scanners are normally used, so no extra
-	 * JavaScript is needed for the scan-to-open flow itself.
-	 */
-	private function maybe_handle_barcode_scan(): void {
-		// Read-only: a lookup-and-redirect (or "not found" notice), not a mutation.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! isset( $_GET['sb_barcode_scan'] ) ) {
-			return;
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$value = sanitize_text_field( wp_unslash( $_GET['sb_barcode_scan'] ) );
-
-		if ( '' === $value ) {
-			return;
-		}
-
-		$post_id = $this->barcodes->find_post_by_barcode( $value );
-
-		if ( null !== $post_id ) {
-			wp_safe_redirect( (string) get_edit_post_link( $post_id, 'raw' ) );
-			exit;
-		}
-
-		$this->redirect_with_notice(
-			'error',
-			sprintf(
-				/* translators: %s: scanned barcode value. */
-				__( 'No book found with barcode "%s".', 'smartbook' ),
-				$value
-			)
-		);
-	}
-
-	/**
-	 * Render the "scan or type a barcode" quick-search box.
-	 */
-	private function render_scan_form(): void {
-		echo '<form method="get" class="sb-barcode-scan">';
-		printf( '<input type="hidden" name="page" value="%s" />', esc_attr( self::PAGE_SLUG ) );
-		printf(
-			'<label for="sb-barcode-scan-input" class="screen-reader-text">%s</label>',
-			esc_html__( 'Scan or type a barcode', 'smartbook' )
-		);
-		printf(
-			'<input type="text" id="sb-barcode-scan-input" name="sb_barcode_scan" class="regular-text" placeholder="%s" autocomplete="off" />',
-			esc_attr__( 'Scan or type a barcode…', 'smartbook' )
-		);
-		submit_button( __( 'Find Book', 'smartbook' ), '', '', false );
-		echo '</form>';
 	}
 
 	/**
@@ -204,31 +199,6 @@ final class BooksPage {
 		}
 
 		$this->redirect_with_notice( 'success', $this->row_action_message( $action, $count ) );
-	}
-
-	/**
-	 * Redirect the selected books straight to a label print sheet. This
-	 * is a navigation, not a mutation, so unlike handle_row_action() it
-	 * doesn't touch any data or show a result notice.
-	 *
-	 * @param string $page_slug Either "sb_qr_labels" or "sb_barcode_labels".
-	 * @param int[]  $ids       Post IDs to print labels for.
-	 */
-	private function redirect_to_print_labels( string $page_slug, array $ids ): never {
-		$args = array(
-			'page'            => $page_slug,
-			'sb_print_labels' => '1',
-			'sb_book_id'      => $ids,
-		);
-
-		$url = wp_nonce_url(
-			add_query_arg( $args, admin_url( 'admin.php' ) ),
-			AbstractLabelsPage::print_nonce_action( $page_slug )
-		);
-
-		wp_safe_redirect( $url );
-
-		exit;
 	}
 
 	/**
@@ -435,7 +405,7 @@ final class BooksPage {
 	/**
 	 * {@inheritDoc}
 	 */
-	private function notice_page_slug(): string {
+	protected function notice_page_slug(): string {
 		return self::PAGE_SLUG;
 	}
 }

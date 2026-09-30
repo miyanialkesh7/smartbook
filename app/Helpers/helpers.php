@@ -94,3 +94,37 @@ if ( ! function_exists( 'sb_asset_version' ) ) {
 		return false !== $mtime ? (string) $mtime : SB_VERSION;
 	}
 }
+
+if ( ! function_exists( 'sb_format_currency' ) ) {
+	/**
+	 * Format an amount using the site's configured "currency" setting
+	 * (Settings::CURRENCIES), e.g. sb_format_currency( 12.5 ) => "$12.50".
+	 */
+	function sb_format_currency( float $amount ): string {
+		$code = (string) sb_option( 'currency', 'USD' );
+
+		return Settings::currency_symbol( $code ) . number_format( $amount, 2 );
+	}
+}
+
+if ( ! function_exists( 'sb_format_date' ) ) {
+	/**
+	 * Format a stored "Y-m-d" date string using the site's configured
+	 * "date_format" setting (Settings::DATE_FORMATS), or an explicit
+	 * override. Returns an empty string unchanged and an unparseable
+	 * value as-is, rather than showing a misleading "1970" date.
+	 */
+	function sb_format_date( string $date, string $format = '' ): string {
+		if ( '' === $date ) {
+			return '';
+		}
+
+		$timestamp = strtotime( $date );
+
+		if ( false === $timestamp ) {
+			return $date;
+		}
+
+		return date_i18n( '' !== $format ? $format : (string) sb_option( 'date_format', 'Y-m-d' ), $timestamp );
+	}
+}

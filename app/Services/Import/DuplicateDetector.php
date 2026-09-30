@@ -18,9 +18,9 @@ use WP_Post;
  *
  * Matching, most specific first: an explicit "ID" column that points at
  * a real book (used by Restore, where the backup carries original post
- * IDs), then ISBN-13, then ISBN-10, then an exact (case-insensitive)
- * title match. The first hit wins; an empty/absent value at any step is
- * skipped rather than treated as a match.
+ * IDs), then ISBN-10, then an exact (case-insensitive) title match. The
+ * first hit wins; an empty/absent value at any step is skipped rather
+ * than treated as a match.
  */
 final class DuplicateDetector {
 
@@ -40,14 +40,10 @@ final class DuplicateDetector {
 			}
 		}
 
-		foreach ( array( 'sb_isbn13', 'sb_isbn' ) as $meta_key ) {
-			$value = isset( $row[ $meta_key ] ) ? trim( (string) $row[ $meta_key ] ) : '';
+		$isbn = isset( $row['sb_isbn'] ) ? trim( (string) $row['sb_isbn'] ) : '';
 
-			if ( '' === $value ) {
-				continue;
-			}
-
-			$match = $this->find_by_meta( $meta_key, $value );
+		if ( '' !== $isbn ) {
+			$match = $this->find_by_meta( 'sb_isbn', $isbn );
 
 			if ( $match > 0 ) {
 				return $match;

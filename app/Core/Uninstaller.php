@@ -48,6 +48,7 @@ final class Uninstaller {
 		$options = array(
 			'sb_options',
 			'sb_db_version',
+			'sb_books_page_id',
 		);
 
 		foreach ( $options as $option ) {

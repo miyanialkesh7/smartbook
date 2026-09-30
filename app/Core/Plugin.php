@@ -21,6 +21,7 @@ use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\Core\Contracts\ServiceProviderInterface;
 use SmartBook\Frontend\FrontendServiceProvider;
 use SmartBook\MetaBoxes\MetaBoxServiceProvider;
+use SmartBook\Notifications\NotificationsServiceProvider;
 use SmartBook\PostTypes\PostTypeServiceProvider;
 use SmartBook\Services\BarcodeServiceProvider;
 use SmartBook\Services\Import\ImportExportServiceProvider;
@@ -66,6 +67,7 @@ final class Plugin {
 		MetaBoxServiceProvider::class,
 		FrontendServiceProvider::class,
 		AdminServiceProvider::class,
+		NotificationsServiceProvider::class,
 	);
 
 	/**

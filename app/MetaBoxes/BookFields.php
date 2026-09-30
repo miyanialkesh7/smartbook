@@ -14,13 +14,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use DateTimeImmutable;
+use WP_User;
+
+use function sb_option;
 
 /**
  * Single source of truth for the sixteen "sb_"-prefixed book meta
- * fields: their labels, input types, and sanitization rules. Consumed
- * by BookDetailsMetaBox (edit-screen UI) and Admin\Pages\ImportExportPage
- * (CSV import/export) so both stay in lock-step with the same field set
- * instead of maintaining two divergent copies.
+ * fields: their labels, input types, sanitization rules, section
+ * grouping, and input markup. Consumed by BookDetailsMetaBox (edit-screen
+ * UI), Admin\Pages\AddBookPage (the custom "Add New Book" form), and
+ * Admin\Pages\ImportExportPage (CSV import/export) so all three stay in
+ * lock-step with the same field set instead of maintaining divergent
+ * copies.
  */
 final class BookFields {
 
@@ -36,11 +41,6 @@ final class BookFields {
 				'label'       => __( 'ISBN-10', 'smartbook' ),
 				'type'        => 'text',
 				'description' => __( '10-character International Standard Book Number.', 'smartbook' ),
-			),
-			'sb_isbn13'        => array(
-				'label'       => __( 'ISBN-13', 'smartbook' ),
-				'type'        => 'text',
-				'description' => __( '13-character International Standard Book Number.', 'smartbook' ),
 			),
 			'sb_barcode'       => array(
 				'label'       => __( 'Barcode', 'smartbook' ),
@@ -96,14 +96,6 @@ final class BookFields {
 				'label' => __( 'Purchase Date', 'smartbook' ),
 				'type'  => 'date',
 			),
-			'sb_rating'        => array(
-				'label'        => __( 'Rating', 'smartbook' ),
-				'type'         => 'number',
-				'numeric_type' => 'int',
-				'min'          => 0,
-				'max'          => 5,
-				'step'         => 1,
-			),
 			'sb_status'        => array(
 				'label'   => __( 'Reading Status', 'smartbook' ),
 				'type'    => 'select',
@@ -146,8 +138,8 @@ final class BookFields {
 			),
 			'sb_borrowed_to'   => array(
 				'label'       => __( 'Borrowed To', 'smartbook' ),
-				'type'        => 'text',
-				'description' => __( 'Name of the person who has this book.', 'smartbook' ),
+				'type'        => 'user_select',
+				'description' => __( 'Pick from this site\'s registered users.', 'smartbook' ),
 			),
 			'sb_borrow_date'   => array(
 				'label' => __( 'Borrow Date', 'smartbook' ),
@@ -261,5 +253,246 @@ final class BookFields {
 		$normalized = strtolower( trim( (string) $raw ) );
 
 		return in_array( $normalized, array( '1', 'true', 'yes', 'on' ), true ) ? '1' : '';
+	}
+
+	/**
+	 * Field keys grouped into display sections, in render order. A
+	 * section with a non-null "gate" is only rendered/saved when the
+	 * named Settings\Settings boolean is true -- see visible_sections().
+	 * Shared by BookDetailsMetaBox (the edit-screen meta box) and
+	 * Admin\Pages\AddBookPage (the custom "Add New Book" form), so both
+	 * present the exact same grouping.
+	 *
+	 * @return array<string, array{title: string, fields: string[], gate: ?string}>
+	 */
+	public static function sections(): array {
+		return array(
+			'identification'  => array(
+				'title'  => __( 'Identification', 'smartbook' ),
+				'fields' => array( 'sb_isbn', 'sb_barcode', 'sb_pages', 'sb_edition', 'sb_language', 'sb_format' ),
+				'gate'   => null,
+			),
+			'condition'       => array(
+				'title'  => __( 'Condition & Value', 'smartbook' ),
+				'fields' => array( 'sb_condition', 'sb_price', 'sb_purchase_date' ),
+				'gate'   => null,
+			),
+			'reading_tracker' => array(
+				'title'  => __( 'Reading Progress', 'smartbook' ),
+				'fields' => array( 'sb_status', 'sb_progress' ),
+				'gate'   => 'enable_reading_tracker',
+			),
+			'rating'          => array(
+				'title'  => __( 'Lists', 'smartbook' ),
+				'fields' => array( 'sb_favorite', 'sb_wishlist' ),
+				'gate'   => null,
+			),
+			'borrow'          => array(
+				'title'  => __( 'Borrow Management', 'smartbook' ),
+				'fields' => array( 'sb_borrowed', 'sb_borrowed_to', 'sb_borrow_date', 'sb_return_date', 'sb_reminder', 'sb_returned', 'sb_lost' ),
+				'gate'   => 'enable_borrow',
+			),
+			'notes'           => array(
+				'title'  => __( 'Notes', 'smartbook' ),
+				'fields' => array( 'sb_notes', 'sb_summary' ),
+				'gate'   => null,
+			),
+		);
+	}
+
+	/**
+	 * sections(), minus any section whose "gate" setting is currently off.
+	 *
+	 * @return array<string, array{title: string, fields: string[], gate: ?string}>
+	 */
+	public static function visible_sections(): array {
+		return array_filter(
+			self::sections(),
+			static fn ( array $section ): bool => null === $section['gate'] || sb_option( $section['gate'], true )
+		);
+	}
+
+	/**
+	 * Render a single field's label plus its typed input control, escaping
+	 * every dynamic value at the point of output.
+	 *
+	 * @param string               $key   Meta key, e.g. "sb_isbn".
+	 * @param array<string, mixed> $field Field definition from definitions().
+	 * @param mixed                $value Current value (empty string for a not-yet-created book).
+	 */
+	public static function render_field( string $key, array $field, mixed $value ): void {
+		$id = esc_attr( $key );
+
+		if ( 'checkbox' === $field['type'] ) {
+			printf(
+				'<div class="sb-field-group sb-field-group--checkbox"><label for="%1$s"><input type="checkbox" id="%1$s" name="%1$s" value="1" %2$s /> %3$s</label></div>',
+				esc_attr( $id ),
+				checked( '1', $value, false ),
+				esc_html( $field['label'] )
+			);
+
+			return;
+		}
+
+		printf(
+			'<div class="sb-field-group%s">',
+			'textarea' === $field['type'] ? ' sb-field-group--full' : ''
+		);
+
+		printf( '<label for="%1$s">%2$s</label>', esc_attr( $id ), esc_html( $field['label'] ) );
+
+		switch ( $field['type'] ) {
+			case 'textarea':
+				printf(
+					'<textarea id="%1$s" name="%1$s" class="widefat" rows="4">%2$s</textarea>',
+					esc_attr( $id ),
+					esc_textarea( (string) $value )
+				);
+				break;
+
+			case 'select':
+				printf( '<select id="%1$s" name="%1$s" class="regular-text">', esc_attr( $id ) );
+
+				foreach ( $field['options'] as $option_value => $option_label ) {
+					printf(
+						'<option value="%1$s" %2$s>%3$s</option>',
+						esc_attr( $option_value ),
+						selected( $value, $option_value, false ),
+						esc_html( $option_label )
+					);
+				}
+
+				echo '</select>';
+				break;
+
+			case 'user_select':
+				// Progressively enhanced into a searchable, scrollable
+				// combobox by sb-admin.js' sb_initUserSelects() -- the
+				// <select> itself stays in the DOM (hidden) and is what
+				// actually submits with the form.
+				echo '<div class="sb-user-select" data-sb-user-select>';
+				printf( '<select id="%1$s" name="%1$s" class="sb-user-select__native">', esc_attr( $id ) );
+				printf( '<option value="">%s</option>', esc_html__( '— Select —', 'smartbook' ) );
+
+				foreach ( self::user_options() as $option_value => $option_label ) {
+					printf(
+						'<option value="%1$s" %2$s>%3$s</option>',
+						esc_attr( $option_value ),
+						selected( $value, $option_value, false ),
+						esc_html( $option_label )
+					);
+				}
+
+				echo '</select>';
+				echo '</div>';
+				break;
+
+			case 'number':
+				printf(
+					'<input type="number" id="%1$s" name="%1$s" value="%2$s" class="regular-text" %3$s />',
+					esc_attr( $id ),
+					esc_attr( (string) $value ),
+					self::numeric_attributes( $field )
+				);
+				break;
+
+			case 'date':
+				printf(
+					'<input type="date" id="%1$s" name="%1$s" value="%2$s" class="regular-text" />',
+					esc_attr( $id ),
+					esc_attr( (string) $value )
+				);
+				break;
+
+			default:
+				printf(
+					'<input type="text" id="%1$s" name="%1$s" value="%2$s" class="regular-text" />',
+					esc_attr( $id ),
+					esc_attr( (string) $value )
+				);
+				break;
+		}
+
+		if ( ! empty( $field['description'] ) ) {
+			printf( '<p class="description">%s</p>', esc_html( $field['description'] ) );
+		}
+
+		echo '</div>';
+	}
+
+	/**
+	 * Every registered user, alphabetical by display name, for the
+	 * "Borrowed To" picker (sb_borrowed_to) -- except the user currently
+	 * filling out this form, who can't lend a book to themselves. Keyed
+	 * by user id (the option value), not display name: unlike a name,
+	 * an id can't drift out of sync when someone changes their display
+	 * name later, and Admin\Pages\BorrowRequestController/
+	 * BorrowedBooksPage's "approve request" action already stores the
+	 * requester's id here. See borrowed_to_display() for turning a
+	 * stored id (or a legacy/free-text name -- the book scan page's own
+	 * "Borrow" quick action still accepts a plain typed name, since it's
+	 * meant to also cover lending to someone with no site account) back
+	 * into something displayable.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function user_options(): array {
+		$users = get_users(
+			array(
+				'fields'  => array( 'ID', 'display_name' ),
+				'exclude' => array( get_current_user_id() ),
+				'orderby' => 'display_name',
+				'order'   => 'ASC',
+			)
+		);
+
+		$options = array();
+
+		foreach ( $users as $user ) {
+			$options[ (string) $user->ID ] = $user->display_name;
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Turn a stored "sb_borrowed_to" value into something displayable:
+	 * a purely-numeric value is a user id (set by an approved borrow
+	 * request), resolved to that user's current display name --
+	 * "(deleted user)" if the account is gone -- so a later name change
+	 * never leaves this showing a stale name. Anything else is a
+	 * free-text name (the book scan page's "Borrow" quick action, or a
+	 * CSV import), shown as-is.
+	 */
+	public static function borrowed_to_display( string $raw ): string {
+		if ( '' === $raw ) {
+			return '';
+		}
+
+		if ( ! ctype_digit( $raw ) ) {
+			return $raw;
+		}
+
+		$user = get_userdata( (int) $raw );
+
+		return $user instanceof WP_User ? $user->display_name : __( '(deleted user)', 'smartbook' );
+	}
+
+	/**
+	 * Build an already-escaped "min=... max=... step=..." attribute
+	 * fragment for a number input, omitting any bound the field doesn't declare.
+	 *
+	 * @param array<string, mixed> $field Field definition, may contain "min", "max", "step".
+	 */
+	private static function numeric_attributes( array $field ): string {
+		$attributes = array();
+
+		foreach ( array( 'min', 'max', 'step' ) as $attribute ) {
+			if ( isset( $field[ $attribute ] ) ) {
+				$attributes[] = sprintf( '%s="%s"', $attribute, esc_attr( (string) $field[ $attribute ] ) );
+			}
+		}
+
+		return implode( ' ', $attributes );
 	}
 }

@@ -28,6 +28,10 @@ final class FrontendServiceProvider extends AbstractServiceProvider {
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( BookContentDisplay::class, static fn (): BookContentDisplay => new BookContentDisplay() );
+		$container->singleton( BooksShortcode::class, static fn (): BooksShortcode => new BooksShortcode() );
+		$container->singleton( BookScanPage::class, static fn (): BookScanPage => new BookScanPage() );
+		$container->singleton( BookScanActions::class, static fn (): BookScanActions => new BookScanActions() );
+		$container->singleton( BorrowRequestController::class, static fn (): BorrowRequestController => new BorrowRequestController() );
 	}
 
 	/**
@@ -37,5 +41,9 @@ final class FrontendServiceProvider extends AbstractServiceProvider {
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$container->make( BookContentDisplay::class )->register_hooks();
+		$container->make( BooksShortcode::class )->register_hooks();
+		$container->make( BookScanPage::class )->register_hooks();
+		$container->make( BookScanActions::class )->register_hooks();
+		$container->make( BorrowRequestController::class )->register_hooks();
 	}
 }

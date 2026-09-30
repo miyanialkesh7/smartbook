@@ -18,6 +18,8 @@ use SmartBook\Core\Contracts\ContainerInterface;
 use SmartBook\PostTypes\BookPostType;
 use WP_Post;
 
+use function sb_option;
+
 /**
  * Binds the QR code generator/manager and wires their lifecycle hooks:
  * generate automatically when a book is saved, clean up the stored file
@@ -51,9 +53,17 @@ final class QrCodeServiceProvider extends AbstractServiceProvider {
 	/**
 	 * {@inheritDoc}
 	 *
-	 * @param ContainerInterface $container Application service container.
+	 * No-op when the "enable_qr" setting is off (Settings\Settings): no
+	 * QR code gets auto-generated on save, no cleanup runs on delete, and
+	 * the manual regenerate action isn't reachable. Existing generated
+	 * files are left in place (re-enabling picks up right where it left
+	 * off) rather than deleted here.
 	 */
 	public function boot( ContainerInterface $container ): void {
+		if ( ! sb_option( 'enable_qr', true ) ) {
+			return;
+		}
+
 		$manager = $container->make( QrCodeManager::class );
 
 		add_action(

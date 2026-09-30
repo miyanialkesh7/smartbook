@@ -57,24 +57,15 @@ final class BarcodeLabelsPage extends AbstractLabelsPage {
 	 *
 	 * @param int $post_id Book post ID.
 	 */
-	protected function ensure_asset( int $post_id ): void {
+	protected function images( int $post_id ): array {
 		$this->barcodes->ensure_generated( $post_id );
-	}
 
-	/**
-	 * {@inheritDoc}
-	 *
-	 * @param int $post_id Book post ID.
-	 */
-	protected function image_url( int $post_id ): string {
-		return $this->barcodes->url_for( $post_id );
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	protected function image_alt(): string {
-		return __( 'Barcode for this book', 'smartbook' );
+		return array(
+			array(
+				'url' => $this->barcodes->url_for( $post_id ),
+				'alt' => __( 'Barcode for this book', 'smartbook' ),
+			),
+		);
 	}
 
 	/**

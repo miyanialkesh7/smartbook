@@ -19,6 +19,8 @@ use SmartBook\Services\QrCodeManager;
 use SmartBook\Services\QrCodeServiceProvider;
 use WP_Post;
 
+use function sb_option;
+
 /**
  * Side-column meta box showing a book's generated QR code image, a
  * button to force-regenerate it, and a link to its printable label.
@@ -44,8 +46,15 @@ final class QrCodeMetaBox implements Hookable {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * No-op when the "enable_qr" setting is off (Settings\Settings), so
+	 * this meta box simply never appears on the book edit screen.
 	 */
 	public function register_hooks(): void {
+		if ( ! sb_option( 'enable_qr', true ) ) {
+			return;
+		}
+
 		add_action( 'add_meta_boxes', array( $this, 'add' ) );
 	}
 

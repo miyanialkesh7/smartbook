@@ -613,7 +613,7 @@ final class ImportExportPage implements Hookable {
 	 */
 	private function render_duplicate_strategy_field(): void {
 		echo '<fieldset class="sb-choice-group">';
-		printf( '<legend>%s</legend>', esc_html__( 'When a matching book already exists (matched by ID, ISBN-13, ISBN-10, or exact title)', 'smartbook' ) );
+		printf( '<legend>%s</legend>', esc_html__( 'When a matching book already exists (matched by ID, ISBN-10, or exact title)', 'smartbook' ) );
 		echo '<div class="sb-choice-group__options">';
 
 		foreach ( array(
@@ -681,7 +681,7 @@ final class ImportExportPage implements Hookable {
 	/**
 	 * {@inheritDoc}
 	 */
-	private function notice_page_slug(): string {
+	protected function notice_page_slug(): string {
 		return self::PAGE_SLUG;
 	}
 }
