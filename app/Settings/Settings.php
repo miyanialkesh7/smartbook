@@ -39,18 +39,18 @@ final class Settings {
 	 * @var array<string, mixed>
 	 */
 	private const DEFAULTS = array(
-		'enable_logging'              => true,
-		'log_level'                   => 'error',
-		'currency'                    => 'USD',
-		'date_format'                 => 'Y-m-d',
-		'enable_qr'                   => true,
-		'enable_barcode'              => true,
-		'enable_borrow'               => true,
-		'enable_reading_tracker'      => true,
-		'enable_email_notifications'  => true,
-		'google_books_enabled'        => false,
-		'google_books_api_key'        => '',
-		'open_library_enabled'        => false,
+		'enable_logging'             => true,
+		'log_level'                  => 'error',
+		'currency'                   => 'USD',
+		'date_format'                => 'Y-m-d',
+		'enable_qr'                  => true,
+		'enable_barcode'             => true,
+		'enable_borrow'              => true,
+		'enable_reading_tracker'     => true,
+		'enable_email_notifications' => true,
+		'google_books_enabled'       => false,
+		'google_books_api_key'       => '',
+		'open_library_enabled'       => false,
 	);
 
 	/**
@@ -173,6 +173,8 @@ final class Settings {
 	/**
 	 * Human-readable symbol for a currency code, falling back to the code
 	 * itself if it isn't one of CURRENCIES.
+	 *
+	 * @param string $code Error code.
 	 */
 	public static function currency_symbol( string $code ): string {
 		return self::CURRENCIES[ $code ] ?? $code;

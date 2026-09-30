@@ -47,6 +47,8 @@ final class XmlFormat implements FormatInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param array<string, mixed> $rows Rows to process.
 	 */
 	public function encode( array $rows ): string {
 		$taxonomy_columns = BookRowSchema::taxonomy_columns();
@@ -82,6 +84,10 @@ final class XmlFormat implements FormatInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $content Raw contents of the uploaded file.
+	 *
+	 * @throws RuntimeException When the XML file cannot be parsed.
 	 */
 	public function decode( string $content ): array {
 		$previous_state = libxml_use_internal_errors( true );
@@ -97,7 +103,7 @@ final class XmlFormat implements FormatInterface {
 		libxml_use_internal_errors( $previous_state );
 
 		if ( false === $xml ) {
-			throw new RuntimeException( __( 'The XML file could not be parsed.', 'smartbook' ) );
+			throw new RuntimeException( esc_html__( 'The XML file could not be parsed.', 'smartbook' ) );
 		}
 
 		$taxonomy_columns = BookRowSchema::taxonomy_columns();
@@ -131,6 +137,8 @@ final class XmlFormat implements FormatInterface {
 	/**
 	 * Whether a column name is safe to use as an XML element name (guards
 	 * against malformed export data producing invalid XML).
+	 *
+	 * @param string $name Name.
 	 */
 	private function is_valid_tag( string $name ): bool {
 		return 1 === preg_match( '/^[A-Za-z_][A-Za-z0-9_.-]*$/', $name );

@@ -28,6 +28,8 @@ final class NotificationsServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton(
@@ -46,6 +48,8 @@ final class NotificationsServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function boot( ContainerInterface $container ): void {
 		$container->make( BorrowNotifications::class )->register_hooks();

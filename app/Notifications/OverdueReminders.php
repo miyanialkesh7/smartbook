@@ -45,7 +45,9 @@ final class OverdueReminders implements Hookable {
 	private const CRON_HOOK = 'sb_cron_event';
 
 	/**
-	 * @param BookStats       $stats  Book catalog statistics, for borrow_alerts().
+	 * Constructor.
+	 *
+	 * @param BookStats       $stats Book catalog statistics, for borrow_alerts().
 	 * @param LoggerInterface $logger Logger, used when wp_mail() fails.
 	 */
 	public function __construct(

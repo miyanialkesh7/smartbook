@@ -99,6 +99,8 @@ if ( ! function_exists( 'sb_format_currency' ) ) {
 	/**
 	 * Format an amount using the site's configured "currency" setting
 	 * (Settings::CURRENCIES), e.g. sb_format_currency( 12.5 ) => "$12.50".
+	 *
+	 * @param float $amount Amount.
 	 */
 	function sb_format_currency( float $amount ): string {
 		$code = (string) sb_option( 'currency', 'USD' );
@@ -113,6 +115,9 @@ if ( ! function_exists( 'sb_format_date' ) ) {
 	 * "date_format" setting (Settings::DATE_FORMATS), or an explicit
 	 * override. Returns an empty string unchanged and an unparseable
 	 * value as-is, rather than showing a misleading "1970" date.
+	 *
+	 * @param string $date Date string.
+	 * @param string $format Format handler.
 	 */
 	function sb_format_date( string $date, string $format = '' ): string {
 		if ( '' === $date ) {

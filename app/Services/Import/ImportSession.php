@@ -39,6 +39,7 @@ final class ImportSession {
 	/**
 	 * Persist a session's state.
 	 *
+	 * @param string               $token Import session token.
 	 * @param array<string, mixed> $data Session state.
 	 */
 	public function save( string $token, array $data ): void {
@@ -47,6 +48,8 @@ final class ImportSession {
 
 	/**
 	 * Read a session's state, or null if it does not exist or has expired.
+	 *
+	 * @param string $token Import session token.
 	 *
 	 * @return array<string, mixed>|null
 	 */
@@ -58,6 +61,8 @@ final class ImportSession {
 
 	/**
 	 * Remove a session's state.
+	 *
+	 * @param string $token Import session token.
 	 */
 	public function delete( string $token ): void {
 		delete_transient( self::PREFIX . $token );

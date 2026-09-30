@@ -37,6 +37,11 @@ final class ImportOptions {
 	 */
 	private const STRATEGIES = array( self::STRATEGY_SKIP, self::STRATEGY_UPDATE, self::STRATEGY_CREATE );
 
+	/**
+	 * Constructor.
+	 *
+	 * @param string $duplicate_strategy What to do when a row matches an existing book.
+	 */
 	public function __construct(
 		public readonly string $duplicate_strategy = self::STRATEGY_UPDATE
 	) {
@@ -55,6 +60,8 @@ final class ImportOptions {
 	}
 
 	/**
+	 * To array.
+	 *
 	 * @return array<string, string>
 	 */
 	public function to_array(): array {

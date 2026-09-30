@@ -37,7 +37,7 @@ final class EditBookPage extends AbstractBookFormPage {
 	private const PAGE_SLUG = 'sb_edit_book';
 
 	/**
-	 * admin-post.php action name for the form's own submission.
+	 * Admin-post.php action name for the form's own submission.
 	 */
 	private const SAVE_ACTION = 'sb_edit_book';
 
@@ -52,6 +52,8 @@ final class EditBookPage extends AbstractBookFormPage {
 	private const NONCE_NAME = 'sb_edit_book_nonce';
 
 	/**
+	 * Constructor.
+	 *
 	 * @param QrCodeMetaBox  $qr_code_meta_box QR code display/regenerate panel.
 	 * @param BarcodeMetaBox $barcode_meta_box Barcode display/regenerate panel.
 	 */
@@ -179,11 +181,13 @@ final class EditBookPage extends AbstractBookFormPage {
 	 * name as a hidden POST field on save (render_extra_hidden_fields()).
 	 */
 	private function book_id(): int {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- read-only lookup of the book id (absint); handle_save() verifies the nonce before using it and render() only displays.
 		if ( isset( $_POST['book_id'] ) ) {
 			return absint( $_POST['book_id'] );
 		}
 
 		return isset( $_GET['book_id'] ) ? absint( $_GET['book_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
@@ -270,7 +274,7 @@ final class EditBookPage extends AbstractBookFormPage {
 	 * {@inheritDoc}
 	 */
 	protected function render_extra_hidden_fields(): void {
-		printf( '<input type="hidden" name="book_id" value="%d" />', $this->book_id() );
+		printf( '<input type="hidden" name="book_id" value="%d" />', absint( $this->book_id() ) );
 	}
 
 	/**
@@ -390,6 +394,8 @@ final class EditBookPage extends AbstractBookFormPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $key Key.
 	 */
 	protected function current_field_value( string $key ): mixed {
 		$book = $this->book();
@@ -399,6 +405,8 @@ final class EditBookPage extends AbstractBookFormPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	protected function current_terms( string $taxonomy ): array {
 		$book = $this->book();

@@ -35,6 +35,8 @@ final class JsonFormat implements FormatInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param array<string, mixed> $rows Rows to process.
 	 */
 	public function encode( array $rows ): string {
 		$encoded = wp_json_encode( array_values( $rows ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
@@ -44,12 +46,16 @@ final class JsonFormat implements FormatInterface {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $content Raw contents of the uploaded file.
+	 *
+	 * @throws RuntimeException When the JSON file cannot be parsed.
 	 */
 	public function decode( string $content ): array {
 		$decoded = json_decode( $content, true );
 
 		if ( ! is_array( $decoded ) ) {
-			throw new RuntimeException( __( 'The JSON file could not be parsed.', 'smartbook' ) );
+			throw new RuntimeException( esc_html__( 'The JSON file could not be parsed.', 'smartbook' ) );
 		}
 
 		$rows = array();

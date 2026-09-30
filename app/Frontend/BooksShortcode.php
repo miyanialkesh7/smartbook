@@ -196,6 +196,11 @@ final class BooksShortcode implements Hookable {
 
 	/**
 	 * Render one taxonomy <select>, '' when that taxonomy has no terms.
+	 *
+	 * @param string $field_name Field name.
+	 * @param string $taxonomy Taxonomy slug.
+	 * @param string $current Current value.
+	 * @param string $all_label Label for the "all" option.
 	 */
 	private function render_taxonomy_select( string $field_name, string $taxonomy, string $current, string $all_label ): string {
 		$terms = get_terms(
@@ -211,9 +216,10 @@ final class BooksShortcode implements Hookable {
 			return '';
 		}
 
-		$html = sprintf( '<select name="%s" class="sb-books-filter__select">', esc_attr( $field_name ) );
+		$html  = sprintf( '<select name="%s" class="sb-books-filter__select">', esc_attr( $field_name ) );
 		$html .= sprintf( '<option value="">%s</option>', esc_html( $all_label ) );
 
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- inline @var type hint for static analysis.
 		/** @var WP_Term $term */
 		foreach ( $terms as $term ) {
 			$html .= sprintf(
@@ -250,6 +256,7 @@ final class BooksShortcode implements Hookable {
 	/**
 	 * Render the previous/next pagination bar, '' when there's only one page.
 	 *
+	 * @param WP_Query                                                                            $query Query.
 	 * @param array{search: string, author: string, publisher: string, genre: string, paged: int} $filters Current filter values.
 	 */
 	private function render_pagination( WP_Query $query, array $filters ): string {
@@ -287,10 +294,10 @@ final class BooksShortcode implements Hookable {
 	 * the page range).
 	 *
 	 * @param array{search: string, author: string, publisher: string, genre: string, paged: int} $filters Current filter values.
-	 * @param int    $current Current page number.
-	 * @param int    $step    -1 for "previous", 1 for "next".
-	 * @param string $label   Link text.
-	 * @param int    $total   Total number of pages.
+	 * @param int                                                                                 $current Current page number.
+	 * @param int                                                                                 $step    -1 for "previous", 1 for "next".
+	 * @param string                                                                              $label   Link text.
+	 * @param int                                                                                 $total   Total number of pages.
 	 */
 	private function pagination_link( array $filters, int $current, int $step, string $label, int $total ): string {
 		$target = $current + $step;
@@ -316,6 +323,7 @@ final class BooksShortcode implements Hookable {
 	 * URL for a given page number, preserving the current search/filter values.
 	 *
 	 * @param array{search: string, author: string, publisher: string, genre: string, paged: int} $filters Current filter values.
+	 * @param int                                                                                 $page Page slug.
 	 */
 	private function pagination_url( array $filters, int $page ): string {
 		$args = array( 'sb_paged' => $page );
@@ -376,6 +384,8 @@ final class BooksShortcode implements Hookable {
 
 	/**
 	 * Render a single book card.
+	 *
+	 * @param WP_Post $book Book post object.
 	 */
 	private function render_book( WP_Post $book ): string {
 		$html  = '<div class="sb-book">';
@@ -402,6 +412,8 @@ final class BooksShortcode implements Hookable {
 	/**
 	 * The book's cover image, linked-page-ready markup straight from
 	 * core, or a placeholder glyph when it has none.
+	 *
+	 * @param WP_Post $book Book post object.
 	 */
 	private function cover( WP_Post $book ): string {
 		if ( has_post_thumbnail( $book ) ) {
@@ -414,6 +426,8 @@ final class BooksShortcode implements Hookable {
 	/**
 	 * Already-escaped meta fragments for one book, in display order,
 	 * skipping any that are empty.
+	 *
+	 * @param WP_Post $book Book post object.
 	 *
 	 * @return string[]
 	 */
@@ -434,6 +448,9 @@ final class BooksShortcode implements Hookable {
 
 	/**
 	 * Comma-separated term names for one taxonomy, already escaped.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	private function terms( int $post_id, string $taxonomy ): string {
 		$terms = get_the_terms( $post_id, $taxonomy );
@@ -450,6 +467,8 @@ final class BooksShortcode implements Hookable {
 	 * the $ratings cache render() populates via CommentRating::averages(),
 	 * front-end commenters' own ratings), rounded to the nearest whole
 	 * star. Omitted when nobody has rated the book yet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function rating( int $post_id ): string {
 		[ $average, $count ] = $this->ratings[ $post_id ] ?? array( 0.0, 0 );
@@ -466,6 +485,8 @@ final class BooksShortcode implements Hookable {
 	/**
 	 * Translated reading-status label, already escaped, reusing the same
 	 * option labels the edit-screen meta box uses.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function status_label( int $post_id ): string {
 		$status  = (string) get_post_meta( $post_id, 'sb_status', true );
@@ -477,6 +498,8 @@ final class BooksShortcode implements Hookable {
 	/**
 	 * The book's price formatted per the site's currency setting,
 	 * already escaped, omitted when unset.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function price( int $post_id ): string {
 		$price = (float) get_post_meta( $post_id, 'sb_price', true );

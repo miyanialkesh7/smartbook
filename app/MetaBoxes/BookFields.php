@@ -301,7 +301,7 @@ final class BookFields {
 	}
 
 	/**
-	 * sections(), minus any section whose "gate" setting is currently off.
+	 * The result of sections(), minus any section whose "gate" setting is currently off.
 	 *
 	 * @return array<string, array{title: string, fields: string[], gate: ?string}>
 	 */
@@ -392,7 +392,7 @@ final class BookFields {
 					'<input type="number" id="%1$s" name="%1$s" value="%2$s" class="regular-text" %3$s />',
 					esc_attr( $id ),
 					esc_attr( (string) $value ),
-					self::numeric_attributes( $field )
+					self::numeric_attributes( $field ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every attribute value is passed through esc_attr() inside numeric_attributes().
 				);
 				break;
 
@@ -463,6 +463,8 @@ final class BookFields {
 	 * never leaves this showing a stale name. Anything else is a
 	 * free-text name (the book scan page's "Borrow" quick action, or a
 	 * CSV import), shown as-is.
+	 *
+	 * @param string $raw Raw value.
 	 */
 	public static function borrowed_to_display( string $raw ): string {
 		if ( '' === $raw ) {

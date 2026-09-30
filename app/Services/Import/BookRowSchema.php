@@ -76,6 +76,8 @@ final class BookRowSchema {
 	/**
 	 * Build one export row from a book post.
 	 *
+	 * @param WP_Post $post Post object.
+	 *
 	 * @return array<string, mixed>
 	 */
 	public static function row_for_post( WP_Post $post ): array {
@@ -123,7 +125,7 @@ final class BookRowSchema {
 
 		if ( $target_id > 0 && get_post( $target_id ) instanceof WP_Post ) {
 			$post_data['ID'] = $target_id;
-			$result           = wp_update_post( $post_data, true );
+			$result          = wp_update_post( $post_data, true );
 		} else {
 			$result = wp_insert_post( $post_data, true );
 		}

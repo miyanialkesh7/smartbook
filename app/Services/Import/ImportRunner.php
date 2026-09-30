@@ -53,6 +53,15 @@ final class ImportRunner {
 	 */
 	private const MAX_STORED_ERRORS = 200;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param FormatRegistry    $formats    Available import formats.
+	 * @param DuplicateDetector $duplicates Finds the existing book a row matches.
+	 * @param ImportSession     $sessions   Persists the state of chunked runs.
+	 * @param UploadedFileStore $uploads    Stores uploaded files between requests.
+	 * @param LoggerInterface   $logger     Logger for per-row failures.
+	 */
 	public function __construct(
 		private readonly FormatRegistry $formats,
 		private readonly DuplicateDetector $duplicates,
@@ -67,9 +76,9 @@ final class ImportRunner {
 	 * and open a new session for it.
 	 *
 	 * @param array<string, mixed> $file        One $_FILES entry.
-	 * @param string                $format_key  FormatRegistry key ("csv", "json", "xml", "backup").
+	 * @param string               $format_key  FormatRegistry key ("csv", "json", "xml", "backup").
 	 * @param array<string, mixed> $raw_options Raw duplicate-handling options (see ImportOptions).
-	 * @param string                $mode        "import" or "restore", carried through for display only.
+	 * @param string               $mode        "import" or "restore", carried through for display only.
 	 *
 	 * @return array{token: string, total: int}|WP_Error
 	 */
@@ -133,6 +142,9 @@ final class ImportRunner {
 	/**
 	 * Process the next batch of rows for a session.
 	 *
+	 * @param string $token Import session token.
+	 * @param int    $limit Maximum number of items.
+	 *
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public function process_chunk( string $token, int $limit = self::DEFAULT_CHUNK_SIZE ): array|WP_Error {
@@ -168,7 +180,7 @@ final class ImportRunner {
 			$this->process_row( $session, $row, $options, $offset + (int) $index + 2 );
 		}
 
-		$new_offset      = $offset + count( $slice );
+		$new_offset        = $offset + count( $slice );
 		$session['offset'] = $new_offset;
 		$done              = $new_offset >= (int) $session['total'];
 
@@ -185,8 +197,10 @@ final class ImportRunner {
 	 * Run an entire import/restore to completion within the current
 	 * request; the no-JS fallback for start()/process_chunk().
 	 *
-	 * @param array<string, mixed> $file        One $_FILES entry.
+	 * @param array<string, mixed> $file One $_FILES entry.
+	 * @param string               $format_key Format registry key.
 	 * @param array<string, mixed> $raw_options Raw duplicate-handling options.
+	 * @param string               $mode Import mode.
 	 *
 	 * @return array<string, mixed>|WP_Error
 	 */
@@ -214,6 +228,8 @@ final class ImportRunner {
 	 * Current (or final) progress/result for a session, without
 	 * processing any further rows.
 	 *
+	 * @param string $token Import session token.
+	 *
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public function result( string $token ): array|WP_Error {
@@ -230,6 +246,8 @@ final class ImportRunner {
 
 	/**
 	 * Render a session's recorded errors as a downloadable CSV string.
+	 *
+	 * @param string $token Import session token.
 	 */
 	public function error_log_csv( string $token ): string|WP_Error {
 		$session = $this->owned_session( $token );
@@ -238,6 +256,7 @@ final class ImportRunner {
 			return $session;
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- in-memory php://temp stream, or this plugin's own stored upload; not user-controlled paths.
 		$handle = fopen( 'php://temp', 'w+' );
 
 		fputcsv( $handle, array( 'Row', 'Title', 'Message' ) );
@@ -252,6 +271,7 @@ final class ImportRunner {
 
 		rewind( $handle );
 		$content = stream_get_contents( $handle );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- in-memory php://temp stream, or this plugin's own stored upload; not user-controlled paths.
 		fclose( $handle );
 
 		return false !== $content ? $content : '';
@@ -261,8 +281,10 @@ final class ImportRunner {
 	 * Resolve, dedupe-match, and apply a single row, mutating $session's
 	 * running counts and (on failure) its capped error list in place.
 	 *
-	 * @param array<string, mixed> $session Session state, by reference.
-	 * @param array<string, mixed> $row     Decoded row.
+	 * @param array<string, mixed> &$session Session state, by reference.
+	 * @param array<string, mixed> $row Decoded row.
+	 * @param ImportOptions        $options Options.
+	 * @param int                  $row_number One-based row number.
 	 */
 	private function process_row( array &$session, array $row, ImportOptions $options, int $row_number ): void {
 		try {
@@ -309,8 +331,10 @@ final class ImportRunner {
 	/**
 	 * Append a capped row-level error to a session's error list.
 	 *
-	 * @param array<string, mixed> $session Session state, by reference.
-	 * @param array<string, mixed> $row     Decoded row.
+	 * @param array<string, mixed> &$session Session state, by reference.
+	 * @param int                  $row_number One-based row number.
+	 * @param array<string, mixed> $row Decoded row.
+	 * @param string               $message Message text.
 	 */
 	private function record_error( array &$session, int $row_number, array $row, string $message ): void {
 		if ( count( $session['errors'] ) >= self::MAX_STORED_ERRORS ) {
@@ -324,9 +348,13 @@ final class ImportRunner {
 	 * Decode a stored file's current contents, translating a parse
 	 * failure into a WP_Error instead of letting the exception escape.
 	 *
+	 * @param FormatInterface $format Format handler.
+	 * @param string          $path File path.
+	 *
 	 * @return array<int, array<string, mixed>>|WP_Error
 	 */
 	private function decode( FormatInterface $format, string $path ): array|WP_Error {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- in-memory php://temp stream, or this plugin's own stored upload; not user-controlled paths.
 		$content = file_exists( $path ) ? file_get_contents( $path ) : false;
 
 		if ( false === $content ) {
@@ -343,6 +371,8 @@ final class ImportRunner {
 	/**
 	 * Load a session and verify it exists and belongs to the current user.
 	 *
+	 * @param string $token Import session token.
+	 *
 	 * @return array<string, mixed>|WP_Error
 	 */
 	private function owned_session( string $token ): array|WP_Error {
@@ -352,7 +382,7 @@ final class ImportRunner {
 			return new WP_Error( 'sb_import_session_missing', __( 'This import session has expired. Please start again.', 'smartbook' ) );
 		}
 
-		if ( (int) $session['user_id'] !== get_current_user_id() ) {
+		if ( get_current_user_id() !== (int) $session['user_id'] ) {
 			return new WP_Error( 'sb_import_forbidden', __( 'You do not have permission to access this import session.', 'smartbook' ) );
 		}
 
@@ -362,7 +392,9 @@ final class ImportRunner {
 	/**
 	 * Build the array both process_chunk() and result() return.
 	 *
+	 * @param string               $token Import session token.
 	 * @param array<string, mixed> $session Session state.
+	 * @param bool                 $done Whether the run has finished.
 	 *
 	 * @return array<string, mixed>
 	 */

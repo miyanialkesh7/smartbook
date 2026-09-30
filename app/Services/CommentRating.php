@@ -34,6 +34,8 @@ final class CommentRating {
 	 * directly instead, so as not to run one get_comments() query per
 	 * post (see Admin\Tables\BooksListTable::prepare_items()).
 	 *
+	 * @param int $post_id Book post ID.
+	 *
 	 * @return array{0: float, 1: int}
 	 */
 	public static function average( int $post_id ): array {

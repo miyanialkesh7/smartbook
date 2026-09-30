@@ -100,6 +100,8 @@ final class BookScanPage implements Hookable {
 
 	/**
 	 * Print the complete standalone HTML document for one book.
+	 *
+	 * @param WP_Post $book Book post object.
 	 */
 	private function render( WP_Post $book ): void {
 		?>
@@ -109,10 +111,10 @@ final class BookScanPage implements Hookable {
 	<meta charset="<?php bloginfo( 'charset' ); ?>" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<title><?php echo esc_html( get_the_title( $book ) ); ?></title>
-	<?php wp_head(); ?>
+		<?php wp_head(); ?>
 </head>
 <body <?php body_class( 'sb-scan-page' ); ?>>
-	<?php wp_body_open(); ?>
+		<?php wp_body_open(); ?>
 	<main class="sb-scan">
 		<?php echo $this->notice(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by notice(). ?>
 
@@ -121,9 +123,9 @@ final class BookScanPage implements Hookable {
 
 			<h1 class="sb-scan__title"><?php echo esc_html( get_the_title( $book ) ); ?></h1>
 
-			<?php echo $this->fact_row( __( 'Author', 'smartbook' ), $this->authors( $book->ID ) ); ?>
-			<?php echo $this->fact_row( __( 'Shelf', 'smartbook' ), $this->shelf( $book->ID ) ); ?>
-			<?php echo $this->fact_row( __( 'Rating', 'smartbook' ), $this->rating( $book->ID ) ); ?>
+			<?php echo $this->fact_row( __( 'Author', 'smartbook' ), $this->authors( $book->ID ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fact_row() escapes its label and every value_html argument is already-escaped markup. ?>
+			<?php echo $this->fact_row( __( 'Shelf', 'smartbook' ), $this->shelf( $book->ID ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fact_row() escapes its label and every value_html argument is already-escaped markup. ?>
+			<?php echo $this->fact_row( __( 'Rating', 'smartbook' ), $this->rating( $book->ID ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fact_row() escapes its label and every value_html argument is already-escaped markup. ?>
 
 			<?php if ( sb_option( 'enable_reading_tracker', true ) ) : ?>
 				<?php echo $this->progress_section( $book->ID ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped. ?>
@@ -136,7 +138,7 @@ final class BookScanPage implements Hookable {
 			<?php echo $this->notes( $book->ID ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped. ?>
 		</div>
 	</main>
-	<?php wp_footer(); ?>
+		<?php wp_footer(); ?>
 </body>
 </html>
 		<?php
@@ -161,6 +163,8 @@ final class BookScanPage implements Hookable {
 	 * Fixed, translated copy for every "sb_notice" query value
 	 * BookScanActions can redirect back with. Anything else (query args
 	 * are user-controllable) returns '' rather than being echoed.
+	 *
+	 * @param string $key Key.
 	 */
 	private function notice_message( string $key ): string {
 		return match ( $key ) {
@@ -173,6 +177,8 @@ final class BookScanPage implements Hookable {
 
 	/**
 	 * The book's cover image, or a plain placeholder box when it has none.
+	 *
+	 * @param WP_Post $book Book post object.
 	 */
 	private function cover( WP_Post $book ): string {
 		if ( has_post_thumbnail( $book ) ) {
@@ -185,6 +191,7 @@ final class BookScanPage implements Hookable {
 	/**
 	 * One label/value row, omitted entirely when the value is empty.
 	 *
+	 * @param string $label Label.
 	 * @param string $value_html Already-escaped value markup.
 	 */
 	private function fact_row( string $label, string $value_html ): string {
@@ -201,6 +208,8 @@ final class BookScanPage implements Hookable {
 
 	/**
 	 * Comma-separated author term names, already escaped.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function authors( int $post_id ): string {
 		return $this->terms( $post_id, AuthorTaxonomy::SLUG );
@@ -208,6 +217,8 @@ final class BookScanPage implements Hookable {
 
 	/**
 	 * Comma-separated shelf term names, already escaped.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function shelf( int $post_id ): string {
 		return $this->terms( $post_id, ShelfTaxonomy::SLUG );
@@ -215,6 +226,9 @@ final class BookScanPage implements Hookable {
 
 	/**
 	 * Comma-separated term names for one taxonomy, already escaped.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	private function terms( int $post_id, string $taxonomy ): string {
 		$terms = get_the_terms( $post_id, $taxonomy );
@@ -231,6 +245,8 @@ final class BookScanPage implements Hookable {
 	 * (Services\CommentRating::average(), from front-end commenters' own
 	 * ratings), rounded to the nearest whole star. Omitted when nobody
 	 * has rated the book yet.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function rating( int $post_id ): string {
 		[ $average, $count ] = CommentRating::average( $post_id );
@@ -247,6 +263,8 @@ final class BookScanPage implements Hookable {
 	/**
 	 * The "Reading Progress" block: current status/percentage plus the
 	 * "Update Progress" form (only for a user who can edit this book).
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function progress_section( int $post_id ): string {
 		$progress = max( 0, min( 100, (int) get_post_meta( $post_id, 'sb_progress', true ) ) );
@@ -275,6 +293,9 @@ final class BookScanPage implements Hookable {
 	 * The "Update Progress" form: a 0-100 number field plus a reading
 	 * status dropdown, both pre-filled with the current values.
 	 *
+	 * @param int                   $post_id Book post ID.
+	 * @param int                   $progress Progress data.
+	 * @param string                $status Status.
 	 * @param array<string, string> $options Reading-status value => label pairs.
 	 */
 	private function progress_form( int $post_id, int $progress, string $status, array $options ): string {
@@ -314,6 +335,8 @@ final class BookScanPage implements Hookable {
 	 * this book) -- "Borrow" when the book is currently available,
 	 * "Return" when it's out on loan, mirroring the same
 	 * borrowed-and-not-returned rule Services\BookStats uses.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function borrow_section( int $post_id ): string {
 		$borrowed    = '1' === (string) get_post_meta( $post_id, 'sb_borrowed', true );
@@ -341,6 +364,9 @@ final class BookScanPage implements Hookable {
 
 	/**
 	 * Human-readable "on loan" status line, not yet escaped.
+	 *
+	 * @param string $borrowed_to Name of the borrower.
+	 * @param string $borrow_date Borrow date.
 	 */
 	private function loan_status_text( string $borrowed_to, string $borrow_date ): string {
 		if ( '' === $borrowed_to ) {
@@ -359,6 +385,8 @@ final class BookScanPage implements Hookable {
 	/**
 	 * The "Borrow" form: an optional "Borrowed To" name, defaulting
 	 * server-side to the current user when left blank.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function borrow_form( int $post_id ): string {
 		$html  = sprintf(
@@ -379,6 +407,8 @@ final class BookScanPage implements Hookable {
 
 	/**
 	 * The "Return" form: a single confirmation button, no other input.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function return_form( int $post_id ): string {
 		$html  = sprintf(
@@ -395,6 +425,9 @@ final class BookScanPage implements Hookable {
 	/**
 	 * The hidden action/post-id/nonce fields every quick-action form
 	 * shares.
+	 *
+	 * @param int    $post_id Book post ID.
+	 * @param string $action Action name.
 	 */
 	private function hidden_fields( int $post_id, string $action ): string {
 		$html  = sprintf( '<input type="hidden" name="action" value="%s" />', esc_attr( $action ) );
@@ -406,6 +439,8 @@ final class BookScanPage implements Hookable {
 
 	/**
 	 * The book's free-text notes, already escaped, omitted when unset.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function notes( int $post_id ): string {
 		$notes = (string) get_post_meta( $post_id, 'sb_notes', true );

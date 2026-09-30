@@ -33,7 +33,7 @@ final class AddBookPage extends AbstractBookFormPage {
 	private const PAGE_SLUG = 'sb_add_book';
 
 	/**
-	 * admin-post.php action name for the form's own submission.
+	 * Admin-post.php action name for the form's own submission.
 	 */
 	private const SAVE_ACTION = 'sb_add_book';
 
@@ -262,6 +262,8 @@ final class AddBookPage extends AbstractBookFormPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $key Key.
 	 */
 	protected function current_field_value( string $key ): mixed {
 		return '';
@@ -269,6 +271,8 @@ final class AddBookPage extends AbstractBookFormPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	protected function current_terms( string $taxonomy ): array {
 		return array();

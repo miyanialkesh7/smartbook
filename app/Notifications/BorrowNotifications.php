@@ -33,6 +33,8 @@ use function sb_option;
 final class BorrowNotifications implements Hookable {
 
 	/**
+	 * Constructor.
+	 *
 	 * @param LoggerInterface $logger Logger, used when wp_mail() fails.
 	 */
 	public function __construct( private readonly LoggerInterface $logger ) {
@@ -51,6 +53,9 @@ final class BorrowNotifications implements Hookable {
 
 	/**
 	 * A new "Request to Borrow" was submitted -- tell the site admin.
+	 *
+	 * @param int $post_id Book post ID.
+	 * @param int $user_id User ID.
 	 */
 	public function notify_admin_of_borrow_request( int $post_id, int $user_id ): void {
 		if ( ! $this->enabled() ) {
@@ -79,6 +84,9 @@ final class BorrowNotifications implements Hookable {
 
 	/**
 	 * A pending borrow request was approved -- tell the requester.
+	 *
+	 * @param int $post_id Book post ID.
+	 * @param int $user_id User ID.
 	 */
 	public function notify_requester_of_approval( int $post_id, int $user_id ): void {
 		if ( ! $this->enabled() ) {
@@ -112,6 +120,9 @@ final class BorrowNotifications implements Hookable {
 
 	/**
 	 * A pending borrow request was denied -- tell the requester.
+	 *
+	 * @param int $post_id Book post ID.
+	 * @param int $user_id User ID.
 	 */
 	public function notify_requester_of_denial( int $post_id, int $user_id ): void {
 		if ( ! $this->enabled() ) {
@@ -144,6 +155,9 @@ final class BorrowNotifications implements Hookable {
 
 	/**
 	 * A borrower asked to return a book -- tell the site admin.
+	 *
+	 * @param int $post_id Book post ID.
+	 * @param int $user_id User ID.
 	 */
 	public function notify_admin_of_return_request( int $post_id, int $user_id ): void {
 		if ( ! $this->enabled() ) {
@@ -176,6 +190,8 @@ final class BorrowNotifications implements Hookable {
 	 * this point -- Admin\Pages\BorrowedBooksPage::handle_mark_returned()
 	 * leaves it as a historical record of the loan) rather than being
 	 * passed in, since confirming a return doesn't otherwise need it.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	public function notify_borrower_of_return_confirmation( int $post_id ): void {
 		if ( ! $this->enabled() ) {
@@ -228,6 +244,10 @@ final class BorrowNotifications implements Hookable {
 
 	/**
 	 * Send one email, logging (but never throwing on) a failure.
+	 *
+	 * @param string $to Recipient email address.
+	 * @param string $subject Email subject.
+	 * @param string $message Message text.
 	 */
 	private function send( string $to, string $subject, string $message ): void {
 		if ( '' === $to ) {

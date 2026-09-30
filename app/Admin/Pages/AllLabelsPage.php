@@ -25,6 +25,8 @@ use SmartBook\Services\QrCodeManager;
 final class AllLabelsPage extends AbstractLabelsPage {
 
 	/**
+	 * Constructor.
+	 *
 	 * @param QrCodeManager  $qr_codes QR code storage/lifecycle manager.
 	 * @param BarcodeManager $barcodes Barcode storage/lifecycle manager.
 	 */
@@ -57,6 +59,8 @@ final class AllLabelsPage extends AbstractLabelsPage {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function images( int $post_id ): array {
 		$this->qr_codes->ensure_generated( $post_id );
@@ -79,6 +83,8 @@ final class AllLabelsPage extends AbstractLabelsPage {
 	 *
 	 * Same as BarcodeLabelsPage: also print the human-readable barcode
 	 * value under the images.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	protected function extra_label_content( int $post_id ): string {
 		$value = $this->barcodes->value_for( $post_id );

@@ -46,6 +46,9 @@ final class BooksListTable extends WP_List_Table {
 	 */
 	private array $ratings = array();
 
+	/**
+	 * Set up the list table's singular/plural labels.
+	 */
 	public function __construct() {
 		parent::__construct(
 			array(
@@ -470,6 +473,8 @@ final class BooksListTable extends WP_List_Table {
 	 * given book -- not get_edit_post_link()/the native post editor,
 	 * which EditBookPage's own redirect_native_edit() bounces back here
 	 * anyway; linking straight to it avoids that extra redirect hop.
+	 *
+	 * @param int $post_id Book post ID.
 	 */
 	private function edit_book_link( int $post_id ): string {
 		return add_query_arg(
@@ -486,6 +491,8 @@ final class BooksListTable extends WP_List_Table {
 	 * published, WordPress's own draft-preview link otherwise). Not
 	 * called for a trashed book -- see column_actions() -- since neither
 	 * link means anything for one.
+	 *
+	 * @param WP_Post $item Item.
 	 */
 	private function view_book_link( WP_Post $item ): string {
 		if ( 'publish' === $item->post_status ) {

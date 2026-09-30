@@ -28,10 +28,15 @@ use SmartBook\Services\Import\Formats\XmlFormat;
 final class FormatRegistry {
 
 	/**
+	 * Registered formats, keyed by format key.
+	 *
 	 * @var array<string, FormatInterface>
 	 */
 	private readonly array $formats;
 
+	/**
+	 * Register the built-in formats.
+	 */
 	public function __construct() {
 		$this->formats = array(
 			'csv'    => new CsvFormat(),
@@ -43,6 +48,8 @@ final class FormatRegistry {
 
 	/**
 	 * Resolve a format by registry key ("csv", "json", "xml", "backup").
+	 *
+	 * @param string $key Key.
 	 */
 	public function get( string $key ): ?FormatInterface {
 		return $this->formats[ $key ] ?? null;
@@ -66,6 +73,8 @@ final class FormatRegistry {
 	 * extension. Never returns "backup"; Restore selects that format
 	 * explicitly rather than by guessing from a ".json" extension shared
 	 * with plain JSON exports.
+	 *
+	 * @param string $extension File extension, without the dot.
 	 */
 	public function key_for_extension( string $extension ): ?string {
 		return match ( strtolower( $extension ) ) {

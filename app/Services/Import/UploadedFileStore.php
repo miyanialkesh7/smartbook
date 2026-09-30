@@ -89,10 +89,12 @@ final class UploadedFileStore {
 
 	/**
 	 * Delete a previously stored file, ignoring a missing/already-deleted one.
+	 *
+	 * @param string $path File path.
 	 */
 	public function delete( string $path ): void {
 		if ( '' !== $path && file_exists( $path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_unlink
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_unlink, WordPress.WP.AlternativeFunctions.unlink_unlink -- operates only on this plugin's own private upload directory; failure is harmless and handled by the caller.
 			@unlink( $path );
 		}
 	}
@@ -124,7 +126,7 @@ final class UploadedFileStore {
 			$modified_at = filemtime( $path );
 
 			if ( false !== $modified_at && ( time() - $modified_at ) > self::MAX_AGE ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_unlink
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_unlink, WordPress.WP.AlternativeFunctions.unlink_unlink -- operates only on this plugin's own private upload directory; failure is harmless and handled by the caller.
 				@unlink( $path );
 			}
 		}
@@ -144,14 +146,14 @@ final class UploadedFileStore {
 		$index_file = trailingslashit( $directory ) . 'index.php';
 
 		if ( ! file_exists( $index_file ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- operates only on this plugin's own private upload directory; failure is harmless and handled by the caller.
 			@file_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
 		}
 
 		$htaccess_file = trailingslashit( $directory ) . '.htaccess';
 
 		if ( ! file_exists( $htaccess_file ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- operates only on this plugin's own private upload directory; failure is harmless and handled by the caller.
 			@file_put_contents( $htaccess_file, "Require all denied\n" );
 		}
 

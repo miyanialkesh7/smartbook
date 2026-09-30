@@ -67,6 +67,7 @@ trait RedirectsWithNotice {
 	 * @return array{type: string, message: string}|null
 	 */
 	protected function consume_notice(): ?array {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only display of a redirect notice; nothing is changed by this request.
 		if ( ! isset( $_GET['sb_notice'] ) ) {
 			return null;
 		}
@@ -79,6 +80,7 @@ trait RedirectsWithNotice {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_text_field() is the outermost call and sanitizes the final, fully-decoded value.
 			'message' => sanitize_text_field( rawurldecode( wp_unslash( (string) $_GET['sb_notice'] ) ) ),
 		);
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**

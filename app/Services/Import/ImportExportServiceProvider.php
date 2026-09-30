@@ -22,6 +22,8 @@ final class ImportExportServiceProvider extends AbstractServiceProvider {
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param ContainerInterface $container Application service container.
 	 */
 	public function register( ContainerInterface $container ): void {
 		$container->singleton( FormatRegistry::class, static fn (): FormatRegistry => new FormatRegistry() );

@@ -120,7 +120,9 @@ final class ImportExportPage implements Hookable {
 	private const INLINE_ERROR_LIMIT = 50;
 
 	/**
-	 * @param ImportRunner  $runner  Chunked import/restore engine.
+	 * Constructor.
+	 *
+	 * @param ImportRunner   $runner Chunked import/restore engine.
 	 * @param FormatRegistry $formats Available CSV/JSON/XML/Backup formats.
 	 */
 	public function __construct(
@@ -217,6 +219,7 @@ final class ImportExportPage implements Hookable {
 	 * Stream every book as a download in the chosen format.
 	 */
 	public function handle_export(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verify_request() checks the nonce and capability first.
 		$this->verify_request();
 
 		$requested = isset( $_POST['sb_export_format'] ) ? sanitize_key( wp_unslash( $_POST['sb_export_format'] ) ) : 'csv';
@@ -227,6 +230,7 @@ final class ImportExportPage implements Hookable {
 			$format->mime_type(),
 			'smartbook-export-' . gmdate( 'Y-m-d' ) . '.' . $format->extension()
 		);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
@@ -264,6 +268,7 @@ final class ImportExportPage implements Hookable {
 	 * Stream a finished import/restore run's row-level errors as CSV.
 	 */
 	public function handle_download_log(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- verify_request() checks the nonce and capability first.
 		$this->verify_request();
 
 		$token = isset( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : '';
@@ -274,14 +279,19 @@ final class ImportExportPage implements Hookable {
 		}
 
 		$this->stream_download( $csv, 'text/csv', 'smartbook-import-errors-' . gmdate( 'Y-m-d' ) . '.csv' );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
 	 * Shared body for handle_import()/handle_restore(): validate the
 	 * upload, resolve its format, run it to completion, then redirect to
 	 * a result summary.
+	 *
+	 * @param string $field Field definition.
+	 * @param string $mode Import mode.
 	 */
 	private function handle_run( string $field, string $mode ): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- only called from handle_import()/handle_restore() after verify_request(); the uploaded file is validated by ImportRunner/UploadedFileStore.
 		if ( ! isset( $_FILES[ $field ] ) || UPLOAD_ERR_OK !== $_FILES[ $field ]['error'] ) {
 			$this->redirect_with_notice( 'error', __( 'Please choose a file to upload.', 'smartbook' ) );
 		}
@@ -321,6 +331,7 @@ final class ImportExportPage implements Hookable {
 		);
 
 		exit;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 	}
 
 	/**
@@ -347,6 +358,10 @@ final class ImportExportPage implements Hookable {
 
 	/**
 	 * Send $content to the browser as a file download and terminate the request.
+	 *
+	 * @param string $content Body of the file to send.
+	 * @param string $mime_type MIME type.
+	 * @param string $filename Filename.
 	 */
 	private function stream_download( string $content, string $mime_type, string $filename ): never {
 		nocache_headers();
@@ -366,6 +381,7 @@ final class ImportExportPage implements Hookable {
 	 * @return array<string, mixed>|null
 	 */
 	private function requested_result(): ?array {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- read-only display of a result token; the stored session belongs to the current user (checked in ImportRunner).
 		$token = isset( $_GET['sb_result_token'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_result_token'] ) ) : '';
 
 		if ( '' === $token ) {
@@ -382,6 +398,7 @@ final class ImportExportPage implements Hookable {
 		$result['mode'] = $mode;
 
 		return $result;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
@@ -393,6 +410,7 @@ final class ImportExportPage implements Hookable {
 	private function render_result_summary( array $result ): void {
 		printf( '<div class="sb-notice sb-notice--success sb-import-result"><p>%s</p>', esc_html( $this->summary_message( $result ) ) );
 
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- inline @var type hint for static analysis.
 		/** @var array<int, array<string, mixed>> $errors */
 		$errors = $result['errors'];
 
@@ -449,6 +467,8 @@ final class ImportExportPage implements Hookable {
 
 	/**
 	 * Nonce-signed URL to download a run's full error log.
+	 *
+	 * @param string $token Import session token.
 	 */
 	private function download_log_url( string $token ): string {
 		return wp_nonce_url(
