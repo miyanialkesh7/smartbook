@@ -274,7 +274,17 @@ final class ImportRunner {
 			}
 
 			$is_update = $existing_id > 0 && ImportOptions::STRATEGY_CREATE !== $options->duplicate_strategy;
-			$result    = BookRowSchema::apply_row( $row, $is_update ? $existing_id : 0 );
+
+			// The row matched an existing book: only allow the update if the current
+			// user may edit that specific book (not just books in general), otherwise
+			// a crafted ID or title could overwrite someone else's book.
+			if ( $is_update && ! current_user_can( 'edit_post', $existing_id ) ) {
+				++$session['failed'];
+				$this->record_error( $session, $row_number, $row, __( 'You are not allowed to edit the matching book.', 'smartbook' ) );
+				return;
+			}
+
+			$result = BookRowSchema::apply_row( $row, $is_update ? $existing_id : 0 );
 
 			if ( is_wp_error( $result ) ) {
 				++$session['failed'];
